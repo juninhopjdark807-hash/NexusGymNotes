@@ -1,0 +1,14 @@
+# Análise estática do código Dart.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - preview/**
+
+linter:
+  rules:
+    prefer_single_quotes: true
