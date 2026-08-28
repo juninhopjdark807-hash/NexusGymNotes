@@ -117,7 +117,7 @@ class AppTheme {
     final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
     return base.copyWith(
       scaffoldBackgroundColor: C.bg,
-      indicatorColor: C.accent,
+      tabBarTheme: const TabBarThemeData(indicatorColor: C.accent),
       highlightColor: Colors.transparent,
       splashColor: Colors.transparent,
       dividerColor: C.stroke,

@@ -1,4 +1,5 @@
 /// Formatação de valores (pt-BR) e parsing de entradas do usuário.
+library;
 
 const List<String> _mesesAbrev = [
   'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
@@ -59,7 +60,7 @@ String formatTime(DateTime d) =>
 String formatElapsed(Duration d) {
   final h = d.inHours;
   if (h > 0) {
-    return '${h}:${(d.inMinutes % 60).toString().padLeft(2, '0')}';
+    return '$h:${(d.inMinutes % 60).toString().padLeft(2, '0')}';
   }
   return '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../domain/models/exercise.dart';
-import '../../domain/models/workout_template.dart';
 import '../../state/providers.dart';
 import '../app_frame.dart';
 import '../widgets/app_button.dart';
