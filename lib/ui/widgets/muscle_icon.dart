@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../domain/models/exercise.dart';
 
-/// Ícone linear monocromático por grupo muscular.
+/// Ícone geométrico / fitness por grupo muscular.
+///
+/// Sem silhuetas humanas (bonequinhos). Usa símbolos lineares de
+/// academia e formas geométricas estáveis no Material Icons.
 class MuscleIcon extends StatelessWidget {
   const MuscleIcon({
     super.key,
@@ -20,29 +23,45 @@ class MuscleIcon extends StatelessWidget {
 
   static IconData iconFor(MuscleGroup group) {
     return switch (group) {
-      MuscleGroup.peito => Icons.accessibility_new_rounded,
-      MuscleGroup.costas => Icons.airline_seat_recline_normal_rounded,
-      MuscleGroup.ombros => Icons.architecture_rounded,
+      // Peito — escudo / peitoral
+      MuscleGroup.peito => Icons.shield_outlined,
+      // Costas — camadas / dorsal
+      MuscleGroup.costas => Icons.layers_outlined,
+      // Ombros — triângulo / deltóide
+      MuscleGroup.ombros => Icons.change_history_outlined,
+      // Bíceps — barra / peso
       MuscleGroup.biceps => Icons.fitness_center_rounded,
-      MuscleGroup.triceps => Icons.sports_gymnastics_rounded,
-      MuscleGroup.quadriceps => Icons.directions_run_rounded,
-      MuscleGroup.posteriorCoxa => Icons.directions_walk_rounded,
-      MuscleGroup.gluteos => Icons.emoji_people_rounded,
-      MuscleGroup.panturrilhas => Icons.hiking_rounded,
-      MuscleGroup.abdomen => Icons.self_improvement_rounded,
-      MuscleGroup.lombar => Icons.airline_seat_flat_angled_rounded,
-      MuscleGroup.antebraco => Icons.back_hand_outlined,
-      MuscleGroup.pernas => Icons.directions_run_rounded,
-      MuscleGroup.trapezio => Icons.expand_rounded,
-      MuscleGroup.pescoco => Icons.face_retouching_natural_rounded,
-      MuscleGroup.cardio => Icons.monitor_heart_outlined,
-      MuscleGroup.outros => Icons.sports_rounded,
+      // Tríceps — peso com estilo outline
+      MuscleGroup.triceps => Icons.fitness_center_outlined,
+      // Quadríceps / pernas — setas de extensão
+      MuscleGroup.quadriceps => Icons.expand_outlined,
+      MuscleGroup.pernas => Icons.expand_outlined,
+      // Posterior de coxa — flexão vertical
+      MuscleGroup.posteriorCoxa => Icons.unfold_more_outlined,
+      // Glúteos — hexágono
+      MuscleGroup.gluteos => Icons.hexagon_outlined,
+      // Panturrilhas — setas verticais
+      MuscleGroup.panturrilhas => Icons.swap_vert_rounded,
+      // Abdômen — grade / core
+      MuscleGroup.abdomen => Icons.grid_view_rounded,
+      // Lombar — suporte horizontal
+      MuscleGroup.lombar => Icons.horizontal_rule_rounded,
+      // Antebraço — mão geométrica
+      MuscleGroup.antebraco => Icons.front_hand_outlined,
+      // Trapézio — elevação
+      MuscleGroup.trapezio => Icons.keyboard_double_arrow_up_rounded,
+      // Pescoço — anel
+      MuscleGroup.pescoco => Icons.radio_button_unchecked,
+      // Cardio — coração
+      MuscleGroup.cardio => Icons.favorite_border_rounded,
+      // Outros
+      MuscleGroup.outros => Icons.circle_outlined,
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? (active ? C.accent : C.textDim);
+    final c = color ?? (active ? C.accentSecondary : C.textDim);
     return Icon(iconFor(group), size: size, color: c);
   }
 }
