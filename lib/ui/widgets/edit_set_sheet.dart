@@ -17,6 +17,7 @@ Future<void> showEditSetSheet(
     context: context,
     backgroundColor: C.surface,
     isScrollControlled: true,
+    useSafeArea: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -76,13 +77,17 @@ class _EditSetSheetState extends State<_EditSetSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final inset = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + inset),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           const Text(
             'EDITAR SÉRIE',
             style: TextStyle(
@@ -135,7 +140,8 @@ class _EditSetSheetState extends State<_EditSetSheet> {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
