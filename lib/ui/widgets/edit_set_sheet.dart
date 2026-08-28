@@ -94,9 +94,9 @@ class _EditSetSheetState extends State<_EditSetSheet> {
           ),
           const SizedBox(height: 18),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 11,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -107,8 +107,8 @@ class _EditSetSheetState extends State<_EditSetSheet> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                flex: 6,
+              SizedBox(
+                width: 126,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
