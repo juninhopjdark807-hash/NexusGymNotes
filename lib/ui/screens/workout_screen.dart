@@ -28,6 +28,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   Timer? _ticker;
   DateTime _tick = DateTime.now();
 
+  /// Evita loop: onPageChanged ↔ atualização de estado.
+  bool _ignorePageCallback = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +45,63 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     _ticker?.cancel();
     _pages.dispose();
     super.dispose();
+  }
+
+  int _maxPage(ActiveWorkout workout) => workout.items.length; // cardio
+
+  Future<void> _animateTo(int page) async {
+    if (!_pages.hasClients) return;
+    _ignorePageCallback = true;
+    try {
+      await _pages.animateToPage(
+        page,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    } finally {
+      // Libera após o frame da animação.
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _ignorePageCallback = false;
+        });
+      } else {
+        _ignorePageCallback = false;
+      }
+    }
+  }
+
+  /// Navega para a página [page] atualizando estado + PageView juntos.
+  Future<void> _goTo(int page) async {
+    final workout = ref.read(activeWorkoutProvider);
+    if (workout == null) return;
+    final target = page.clamp(0, _maxPage(workout));
+    if (target == workout.page &&
+        _pages.hasClients &&
+        (_pages.page?.round() ?? workout.page) == target) {
+      return;
+    }
+    ref.read(activeWorkoutProvider.notifier).goToPage(target);
+    await _animateTo(target);
+  }
+
+  Future<void> _goNext() async {
+    final workout = ref.read(activeWorkoutProvider);
+    if (workout == null) return;
+    await _goTo(workout.page + 1);
+  }
+
+  Future<void> _goPrevious() async {
+    final workout = ref.read(activeWorkoutProvider);
+    if (workout == null) return;
+    await _goTo(workout.page - 1);
+  }
+
+  void _onPageChanged(int index) {
+    if (_ignorePageCallback) return;
+    final workout = ref.read(activeWorkoutProvider);
+    if (workout == null) return;
+    if (index == workout.page) return;
+    ref.read(activeWorkoutProvider.notifier).goToPage(index);
   }
 
   Future<void> _confirmEnd() async {
@@ -61,7 +121,11 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text(
               'CONTINUAR',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
             ),
           ),
           TextButton(
@@ -95,25 +159,41 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       return const Scaffold(body: SizedBox.shrink());
     }
 
-    // Anima a troca de página quando a navegação vem do estado
-    // (botões) e não do próprio swipe.
+    // Garante sincronia PageView ↔ estado (ex.: após rebuild).
     ref.listen<ActiveWorkout?>(activeWorkoutProvider, (previous, next) {
       if (next == null) return;
-      final prevPage = previous?.page;
-      if (prevPage == null || prevPage == next.page) return;
-      _pages.animateToPage(
-        next.page,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-      );
+      if (previous?.page == next.page) return;
+      if (!_pages.hasClients) return;
+      final current = _pages.page?.round() ?? previous?.page ?? 0;
+      if (current != next.page) {
+        _animateTo(next.page);
+      }
     });
 
-    final exercises = ref.watch(exercisesProvider).valueOrNull ?? const <Exercise>[];
+    final exercises =
+        ref.watch(exercisesProvider).valueOrNull ?? const <Exercise>[];
     final exerciseById = {for (final e in exercises) e.id: e};
     final total = workout.items.length;
     final elapsed = _tick.isAfter(workout.startedAt)
         ? _tick.difference(workout.startedAt)
         : Duration.zero;
+
+    // Páginas: exercícios (0..n-1) + cardio (n).
+    final pageChildren = <Widget>[
+      for (final item in workout.items)
+        ExercisePage(
+          key: ValueKey('exercise-${item.id}'),
+          item: item,
+          exercise: exerciseById[item.exerciseId] ??
+              Exercise(
+                id: item.exerciseId,
+                name: 'Exercício',
+                muscleGroup: MuscleGroup.outros,
+                createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+              ),
+        ),
+      const CardioPage(key: ValueKey('cardio')),
+    ];
 
     return PopScope(
       canPop: false,
@@ -125,50 +205,43 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           bottom: false,
           child: Column(
             children: [
-              // Barra de progresso do treino
               _ProgressBar(
-                value: total == 0 ? 1 : (workout.page + 1) / (total + 1),
+                value: total == 0 ? 1.0 : (workout.page + 1) / (total + 1),
               ),
               _WorkoutHeader(
                 name: workout.templateName,
-                pageLabel: total == 0 ? '' : '${workout.page.clamp(0, total) + 1}/$total',
+                pageLabel: total == 0
+                    ? ''
+                    : '${workout.page.clamp(0, total - 1 < 0 ? 0 : total - 1) + 1}/$total',
                 atCardio: workout.atCardio,
                 elapsed: elapsed,
                 canGoBack: workout.page > 0,
-                onBack: () => ref.read(activeWorkoutProvider.notifier).previous(),
+                onBack: _goPrevious,
                 onEnd: _confirmEnd,
               ),
               Expanded(
                 child: PageView(
                   controller: _pages,
-                  physics: const PageScrollPhysics(),
-                  onPageChanged: (i) =>
-                      ref.read(activeWorkoutProvider.notifier).goToPage(i),
-                  children: [
-                    ...workout.items.map(
-                      (item) => ExercisePage(
-                        key: ValueKey('exercise-${item.id}'),
-                        item: item,
-                        exercise: exerciseById[item.exerciseId] ??
-                            Exercise(
-                              id: item.exerciseId,
-                              name: 'Exercício',
-                              muscleGroup: MuscleGroup.outros,
-                              createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-                            ),
-                      ),
-                    ),
-                    const CardioPage(),
-                  ],
+                  // Permite swipe entre exercícios e cardio.
+                  physics: const BouncingScrollPhysics(
+                    parent: PageScrollPhysics(),
+                  ),
+                  onPageChanged: _onPageChanged,
+                  children: pageChildren,
                 ),
               ),
               if (!workout.atCardio)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
-                  child: AppButton(
-                    label: workout.isLastExercise ? 'Ir para cardio' : 'Próximo exercício',
-                    icon: Icons.chevron_right_rounded,
-                    onPressed: () => ref.read(activeWorkoutProvider.notifier).next(),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
+                    child: AppButton(
+                      label: workout.isLastExercise
+                          ? 'Ir para cardio'
+                          : 'Próximo exercício',
+                      icon: Icons.chevron_right_rounded,
+                      onPressed: _goNext,
+                    ),
                   ),
                 ),
             ],
@@ -192,7 +265,7 @@ class _ProgressBar extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child: FractionallySizedBox(
-          widthFactor: value.clamp(0.0, 1.0).toDouble(),
+          widthFactor: value.clamp(0.0, 1.0),
           child: Container(color: C.accent),
         ),
       ),
@@ -235,7 +308,11 @@ class _WorkoutHeader extends StatelessWidget {
                   onTap: onBack,
                   child: const Padding(
                     padding: EdgeInsets.all(6),
-                    child: Icon(Icons.chevron_left_rounded, color: C.textDim, size: 28),
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: C.textDim,
+                      size: 28,
+                    ),
                   ),
                 ),
               ),

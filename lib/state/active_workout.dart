@@ -94,19 +94,24 @@ class ActiveWorkoutNotifier extends Notifier<ActiveWorkout?> {
   void goToPage(int page) {
     final s = state;
     if (s == null) return;
-    final p = page.clamp(0, s.items.length);
+    // clamp retorna num em alguns SDKs — força int para a página do cardio
+    // (índice == items.length) ser aceita corretamente.
+    final max = s.items.length; // página do cardio
+    final p = page < 0 ? 0 : (page > max ? max : page);
     if (p == s.page) return;
     state = s.copyWithPage(p);
   }
 
   void next() {
     final s = state;
-    if (s != null) goToPage(s.page + 1);
+    if (s == null || s.atCardio) return;
+    goToPage(s.page + 1);
   }
 
   void previous() {
     final s = state;
-    if (s != null) goToPage(s.page - 1);
+    if (s == null || s.page <= 0) return;
+    goToPage(s.page - 1);
   }
 
   /// Encerra o treino, salvando o cardio (quando informado).
