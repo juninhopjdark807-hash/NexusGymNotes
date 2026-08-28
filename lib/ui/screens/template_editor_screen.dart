@@ -168,31 +168,44 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Nome do treino
+            // Cabeçalho: voltar + nome do treino
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 10, 24, 0),
-              child: TextField(
-                controller: _nameController,
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'NOME DO TREINO',
-                  hintStyle: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
-                    color: C.textFaint,
+              padding: const EdgeInsets.fromLTRB(4, 8, 24, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  AppBackButton(onPressed: () => Navigator.of(context).pop()),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: TextField(
+                      controller: _nameController,
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'NOME DO TREINO',
+                        hintStyle: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                          color: C.textFaint,
+                        ),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 10),
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                    ),
                   ),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 10),
-                ),
-                textCapitalization: TextCapitalization.words,
+                ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Container(height: 1, color: C.stroke),
             const SizedBox(height: 6),
             // Lista de exercícios (drag & drop)

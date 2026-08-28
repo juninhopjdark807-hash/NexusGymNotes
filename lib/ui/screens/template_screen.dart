@@ -42,9 +42,29 @@ class TemplateScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 24, 0),
+              child: Row(
+                children: [
+                  AppBackButton(onPressed: () => Navigator.of(context).pop()),
+                  const SizedBox(width: 6),
+                  const Expanded(
+                    child: Text(
+                      'TREINO',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.6,
+                        color: C.textFaint,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                 children: [
                   Text(
                     template.name.toUpperCase(),
@@ -114,8 +134,6 @@ class TemplateScreen extends ConsumerWidget {
           ],
         ),
       ),
-      // Voltar para a lista de treinos
-      // (o "back" do sistema já faz isso)
     );
   }
 }
