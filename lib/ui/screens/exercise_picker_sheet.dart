@@ -30,9 +30,22 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   final _newNameController = TextEditingController();
   MuscleGroup _group = MuscleGroup.peito;
   String _search = '';
+  bool _creating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Reconstroi ao digitar o nome — habilita "Criar e adicionar".
+    _newNameController.addListener(_onNameChanged);
+  }
+
+  void _onNameChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
+    _newNameController.removeListener(_onNameChanged);
     _searchController.dispose();
     _newNameController.dispose();
     super.dispose();
@@ -40,12 +53,26 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
 
   Future<void> _createAndAdd() async {
     final name = _newNameController.text.trim();
-    if (name.isEmpty) return;
-    final exercise = await ref
-        .read(exerciseRepositoryProvider)
-        .create(name: name, muscleGroup: _group);
-    widget.onAdded(exercise.id);
-    if (mounted) Navigator.of(context).pop();
+    if (name.isEmpty || _creating) return;
+    setState(() => _creating = true);
+    try {
+      final exercise = await ref
+          .read(exerciseRepositoryProvider)
+          .create(name: name, muscleGroup: _group);
+      if (!mounted) return;
+      widget.onAdded(exercise.id);
+      Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _creating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível criar o exercício'),
+          backgroundColor: C.surface2,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -58,6 +85,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                   e.name.toLowerCase().contains(_search.toLowerCase()))
               .toList(growable: false);
     final inset = MediaQuery.viewInsetsOf(context).bottom;
+    final canCreate = _newNameController.text.trim().isNotEmpty && !_creating;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + inset),
@@ -67,7 +95,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
         children: [
           Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: Text(
                   'EXERCÍCIOS',
                   style: TextStyle(
@@ -151,6 +179,11 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
           TextField(
             controller: _newNameController,
             style: const TextStyle(fontSize: 14.5),
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              if (canCreate) _createAndAdd();
+            },
             decoration: const InputDecoration(hintText: 'Nome (ex.: Supino reto)'),
           ),
           const SizedBox(height: 10),
@@ -168,11 +201,9 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
           ),
           const SizedBox(height: 14),
           AppButton(
-            label: 'Criar e adicionar',
+            label: _creating ? 'Criando…' : 'Criar e adicionar',
             height: 54,
-            onPressed: _newNameController.text.trim().isEmpty
-                ? null
-                : _createAndAdd,
+            onPressed: canCreate ? _createAndAdd : null,
           ),
         ],
       ),

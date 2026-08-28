@@ -38,33 +38,34 @@ class AppButton extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onPressed : null,
         borderRadius: BorderRadius.circular(18),
-        child: Container(
-          height: height,
-          width: expanded ? double.infinity : null,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(18),
-            border: variant == AppButtonVariant.ghost
-                ? Border.all(color: C.stroke)
-                : null,
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 18, color: fg),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  label.toUpperCase(),
-                  style: AppText.button.copyWith(
-                    color: enabled ? fg : fg.withValues(alpha: 0.4),
+        child: Opacity(
+          opacity: enabled ? 1 : 0.45,
+          child: Container(
+            height: height,
+            width: expanded ? double.infinity : null,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(18),
+              border: variant == AppButtonVariant.ghost
+                  ? Border.all(color: C.stroke)
+                  : null,
+            ),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 18, color: fg),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    label.toUpperCase(),
+                    style: AppText.button.copyWith(color: fg),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

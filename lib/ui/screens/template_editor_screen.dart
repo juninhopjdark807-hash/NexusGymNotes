@@ -32,7 +32,8 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _items = const [];
+    // Lista mutável — const [] impede .add() ao criar exercícios.
+    _items = <WorkoutExercise>[];
     if (widget.templateId == null) _loaded = true;
   }
 
