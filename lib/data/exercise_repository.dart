@@ -31,7 +31,10 @@ class ExerciseRepository {
   void _emit() => _changes.add(null);
 
   Future<List<Exercise>> getAll() async {
-    final rows = await _db.query('exercises', orderBy: ['name COLLATE NOCASE ASC']);
+    final rows = await _db.query(
+      'exercises',
+      orderBy: 'name COLLATE NOCASE ASC',
+    );
     return rows.map(_fromRow).toList(growable: false);
   }
 

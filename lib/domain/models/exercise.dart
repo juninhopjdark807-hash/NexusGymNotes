@@ -9,7 +9,7 @@ enum MuscleGroup {
   gluteos('Glúteos'),
   abdomen('Abdômen'),
   trapezio('Trapézio'),
-  pescoço('Pescoço'),
+  pescoco('Pescoço'),
   outros('Outros');
 
   const MuscleGroup(this.label);
@@ -17,11 +17,14 @@ enum MuscleGroup {
   /// Rótulo em português para exibição.
   final String label;
 
-  static MuscleGroup fromName(String? name) =>
-      MuscleGroup.values.firstWhere(
-        (g) => g.name == name,
-        orElse: () => MuscleGroup.outros,
-      );
+  static MuscleGroup fromName(String? name) {
+    // Compatibilidade com o identificador antigo (não-ASCII).
+    if (name == 'pescoço') return MuscleGroup.pescoco;
+    return MuscleGroup.values.firstWhere(
+      (g) => g.name == name,
+      orElse: () => MuscleGroup.outros,
+    );
+  }
 }
 
 /// Exercício cadastrado manualmente pelo usuário.

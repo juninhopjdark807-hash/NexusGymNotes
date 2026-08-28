@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/session_repository.dart';
+import '../../state/providers.dart';
 import '../app_frame.dart';
 import 'session_detail_screen.dart';
 

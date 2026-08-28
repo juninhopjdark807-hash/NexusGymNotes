@@ -80,7 +80,7 @@ class SessionRepository {
     final rows = await _db.query(
       'sessions',
       where: 'ended_at IS NULL',
-      orderBy: ['started_at DESC'],
+      orderBy: 'started_at DESC',
       limit: 1,
     );
     if (rows.isEmpty) return null;
@@ -157,7 +157,7 @@ class SessionRepository {
       'sets',
       where: 'session_id = ?',
       whereArgs: [sessionId],
-      orderBy: ['created_at ASC', 'position ASC'],
+      orderBy: 'created_at ASC, position ASC',
     );
     return rows.map(_setFromRow).toList(growable: false);
   }
@@ -185,26 +185,39 @@ class SessionRepository {
     String exerciseId, {
     String? excludeSessionId,
   }) async {
-    final rows = await _db.rawQuery('''
+    // Placeholders posicionais (?) evitam mapa ambíguo (Iterable + Map spread).
+    final excludeClause = excludeSessionId != null
+        ? 'AND s.session_id != ?'
+        : '';
+    final excludeSubClause = excludeSessionId != null
+        ? 'AND se2.id != ?'
+        : '';
+    final args = <Object?>[
+      exerciseId,
+      if (excludeSessionId != null) excludeSessionId,
+      exerciseId,
+      if (excludeSessionId != null) excludeSessionId,
+    ];
+    final rows = await _db.rawQuery(
+      '''
       SELECT s.*
       FROM sets s
       JOIN sessions se ON se.id = s.session_id
-      WHERE s.exercise_id = :exerciseId
+      WHERE s.exercise_id = ?
         AND s.stage = 'trabalho'
-        ${excludeSessionId != null ? 'AND s.session_id != :exclude' : ''}
+        $excludeClause
         AND se.started_at = (
           SELECT MAX(se2.started_at)
           FROM sessions se2
           JOIN sets s2 ON s2.session_id = se2.id
-          WHERE s2.exercise_id = :exerciseId
+          WHERE s2.exercise_id = ?
             AND s2.stage = 'trabalho'
-            ${excludeSessionId != null ? 'AND se2.id != :exclude' : ''}
+            $excludeSubClause
         )
       ORDER BY s.position ASC
-    ''', {
-      'exerciseId': exerciseId,
-      if (excludeSessionId != null) 'exclude': excludeSessionId,
-    });
+      ''',
+      args,
+    );
     return rows.map(_setFromRow).toList(growable: false);
   }
 
@@ -217,7 +230,7 @@ class SessionRepository {
       'sets',
       where: 'exercise_id = ?',
       whereArgs: [exerciseId],
-      orderBy: ['created_at ASC', 'position ASC'],
+      orderBy: 'created_at ASC, position ASC',
     );
     return rows.map(_setFromRow).toList(growable: false);
   }

@@ -40,6 +40,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   late final TextEditingController _prepReps;
   late final TextEditingController _workWeight;
   late final TextEditingController _workReps;
+  bool _didPrefill = false;
 
   @override
   void initState() {
@@ -66,7 +67,8 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   /// Pré-preenche os campos com as sugestões calculadas a partir da
   /// referência (somente campos ainda vazios — nunca sobrescreve).
   void _prefill(double? referenceKg) {
-    if (referenceKg == null) return;
+    if (referenceKg == null || _didPrefill) return;
+    _didPrefill = true;
     if (widget.item.warmupEnabled && _warmupWeight.text.trim().isEmpty) {
       _warmupWeight.text = formatKg(Progression.warmupSuggestion(referenceKg));
     }
@@ -144,7 +146,10 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
         content: Row(
           children: [
             const Expanded(
-              child: Text('Série excluída', style: TextStyle(fontSize: 13)),
+              child: Text(
+                'Série excluída',
+                style: TextStyle(fontSize: 13, color: C.textDim),
+              ),
             ),
             TextButton(
               onPressed: () => repo.saveSet(set),
@@ -163,7 +168,6 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
         backgroundColor: C.surface2,
-        contentTextStyle: const TextStyle(color: C.textDim),
       ),
     );
   }
@@ -180,14 +184,21 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
       ..sort((a, b) => b.order.compareTo(a.order));
 
     final reference = ref.watch(referenceProvider(exerciseId));
-    ref.listen(
+    // Prefill quando a referência carregar. Riverpod 2.x não tem
+    // fireImmediately em ref.listen — aplica no valor já resolvido
+    // e escuta atualizações posteriores.
+    final referenceKg = reference.valueOrNull;
+    if (!_didPrefill && reference.hasValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _prefill(referenceKg);
+      });
+    }
+    ref.listen<AsyncValue<double?>>(
       referenceProvider(exerciseId),
       (previous, next) {
-        if (next is AsyncData<double?>) _prefill(next.value);
+        next.whenData(_prefill);
       },
-      fireImmediately: true,
     );
-    final referenceKg = reference.valueOrNull;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 6, 24, 150),

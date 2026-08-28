@@ -117,8 +117,6 @@ class AppTheme {
     final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
     return base.copyWith(
       scaffoldBackgroundColor: C.bg,
-      canvasColor: C.bg,
-      dialogBackgroundColor: C.surface,
       indicatorColor: C.accent,
       highlightColor: Colors.transparent,
       splashColor: Colors.transparent,
@@ -141,6 +139,9 @@ class AppTheme {
         backgroundColor: C.bg,
         foregroundColor: C.text,
         elevation: 0,
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: C.surface,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

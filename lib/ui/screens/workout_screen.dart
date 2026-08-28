@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../domain/models/exercise.dart';
+import '../../state/active_workout.dart';
+import '../../state/providers.dart';
 import '../widgets/app_button.dart';
 import 'cardio_page.dart';
 import 'exercise_page.dart';
@@ -95,7 +97,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
     // Anima a troca de página quando a navegação vem do estado
     // (botões) e não do próprio swipe.
-    ref.listen(activeWorkoutProvider, (previous, next) {
+    ref.listen<ActiveWorkout?>(activeWorkoutProvider, (previous, next) {
       if (next == null) return;
       final prevPage = previous?.page;
       if (prevPage == null || prevPage == next.page) return;
@@ -114,6 +116,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         : Duration.zero;
 
     return PopScope(
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _confirmEnd();
       },

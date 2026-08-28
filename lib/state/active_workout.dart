@@ -50,12 +50,15 @@ class ActiveWorkout {
 ///
 /// As séries em si ficam no banco (fonte da verdade); este estado
 /// guarda apenas a identidade da sessão e a posição de navegação.
+///
+/// Usa os singletons dos repositórios (mesma instância dos providers)
+/// para evitar import circular com `providers.dart`.
 class ActiveWorkoutNotifier extends Notifier<ActiveWorkout?> {
   @override
   ActiveWorkout? build() => null;
 
-  SessionRepository get _sessions => ref.read(sessionRepositoryProvider);
-  TemplateRepository get _templates => ref.read(templateRepositoryProvider);
+  SessionRepository get _sessions => SessionRepository.shared;
+  TemplateRepository get _templates => TemplateRepository.shared;
 
   /// Inicia uma nova sessão a partir do treino planejado.
   Future<bool> start(WorkoutTemplate template) async {

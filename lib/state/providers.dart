@@ -39,10 +39,19 @@ final activeWorkoutProvider = NotifierProvider<ActiveWorkoutNotifier, ActiveWork
 );
 
 /// Séries da sessão ativa.
+///
+/// Não usa `ref.watch` em outro [StreamProvider] (retorna AsyncValue, não
+/// Stream). Em vez disso, reage às mudanças do repositório e à sessão ativa.
 final activeSessionSetsProvider = StreamProvider<List<SetRecord>>((ref) {
   final workout = ref.watch(activeWorkoutProvider);
-  if (workout == null) return Stream.value(const <SetRecord>[]);
-  return ref.watch(sessionSetsProvider(workout.sessionId));
+  if (workout == null) {
+    return Stream.value(const <SetRecord>[]);
+  }
+  final sessionId = workout.sessionId;
+  final repo = ref.watch(sessionRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.setsForSession(sessionId))
+      .handleError((Object e) => const <SetRecord>[]);
 });
 
 /// Referência do exercício: maior carga de trabalho da execução anterior

@@ -146,9 +146,9 @@ class _CardioPageState extends ConsumerState<CardioPage> {
           TextField(
             controller: _note,
             style: const TextStyle(fontSize: 14.5),
+            maxLength: 120,
             decoration: const InputDecoration(
               hintText: 'Ex.: ritmo forte, fadiga 6/10',
-              maxLength: 120,
               counterText: '',
             ),
           ),

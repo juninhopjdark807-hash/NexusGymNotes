@@ -61,8 +61,7 @@ class AppButton extends StatelessWidget {
                 Text(
                   label.toUpperCase(),
                   style: AppText.button.copyWith(
-                    color: fg,
-                    opacity: enabled ? 1 : 0.4,
+                    color: enabled ? fg : fg.withValues(alpha: 0.4),
                   ),
                 ),
               ],

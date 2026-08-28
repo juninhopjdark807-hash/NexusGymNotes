@@ -205,9 +205,13 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
                 child: Center(
                   child: Text(
                     'Toque em "Adicionar exercício"\npara montar o treino',
-                    style: AppText.bodyFaint,
+                    style: TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 12,
+                      height: 1.5,
+                      color: C.textFaint,
+                    ),
                     textAlign: TextAlign.center,
-                    height: 1.5,
                   ),
                 ),
               )
@@ -216,7 +220,7 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
                 child: ReorderableListView(
                   key: const ValueKey('template-reorder'),
                   physics: const AlwaysScrollableScrollPhysics(),
-                  buildDefault: false,
+                  buildDefaultDragHandles: false,
                   onReorder: (oldIndex, newIndex) {
                     if (newIndex > oldIndex) newIndex -= 1;
                     setState(() {
@@ -228,6 +232,7 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
                     for (var i = 0; i < _items.length; i++)
                       _ItemRow(
                         key: ValueKey(_items[i].id),
+                        index: i,
                         item: _items[i],
                         name: exerciseById[_items[i].exerciseId]?.name ?? 'Exercício',
                         muscle:
@@ -288,6 +293,7 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
 class _ItemRow extends StatelessWidget {
   const _ItemRow({
     super.key,
+    required this.index,
     required this.item,
     required this.name,
     required this.muscle,
@@ -296,6 +302,7 @@ class _ItemRow extends StatelessWidget {
     required this.onRemove,
   });
 
+  final int index;
   final WorkoutExercise item;
   final String name;
   final String muscle;
@@ -314,7 +321,15 @@ class _ItemRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.drag_indicator_rounded, color: C.textFaint, size: 20),
+          // Handle manual (buildDefaultDragHandles: false).
+          ReorderableDragStartListener(
+            index: index,
+            child: const Icon(
+              Icons.drag_indicator_rounded,
+              color: C.textFaint,
+              size: 20,
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
