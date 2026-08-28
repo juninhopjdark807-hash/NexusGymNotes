@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 
-/// Botão redondo de passo (− / +) usado nos campos de peso e repetições.
+/// Botão redondo de passo (− / +).
 class StepButton extends StatelessWidget {
   const StepButton({
     super.key,
@@ -30,9 +30,10 @@ class StepButton extends StatelessWidget {
           width: size,
           height: size,
           child: DecoratedBox(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: C.surface,
+              border: Border.all(color: C.strokeSoft),
             ),
             child: Icon(
               icon,
@@ -46,7 +47,6 @@ class StepButton extends StatelessWidget {
   }
 }
 
-/// Decoração interna dos campos numéricos (sem herdar padding do tema).
 const InputDecoration _fieldDecoration = InputDecoration(
   border: InputBorder.none,
   enabledBorder: InputBorder.none,
@@ -58,11 +58,10 @@ const InputDecoration _fieldDecoration = InputDecoration(
   isCollapsed: true,
   isDense: true,
   contentPadding: EdgeInsets.zero,
-  // Anula o contentPadding do InputDecorationTheme (16px laterais).
   constraints: BoxConstraints(),
 );
 
-/// Campo grande de peso (kg), com passo de 2,5 kg e digitação direta.
+/// Campo grande de peso (kg) — hierarquia visual máxima no treino.
 class WeightField extends StatelessWidget {
   const WeightField({
     super.key,
@@ -88,17 +87,19 @@ class WeightField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
+      height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: C.surface2,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: C.strokeSoft),
       ),
       child: Row(
         children: [
           StepButton(
             icon: Icons.remove,
             enabled: enabled,
+            size: 40,
             onTap: () => _step(-step),
           ),
           Expanded(
@@ -112,9 +113,9 @@ class WeightField extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: AppFonts.display,
-                fontSize: 22,
+                fontSize: 28,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.4,
+                letterSpacing: -0.6,
                 color: C.text,
                 height: 1.1,
               ),
@@ -125,6 +126,7 @@ class WeightField extends StatelessWidget {
           StepButton(
             icon: Icons.add,
             enabled: enabled,
+            size: 40,
             onTap: () => _step(step),
           ),
         ],
@@ -133,9 +135,7 @@ class WeightField extends StatelessWidget {
   }
 }
 
-/// Campo de repetições, com passo de 1 e digitação direta.
-///
-/// Largura mínima garantida para o número sempre aparecer entre − e +.
+/// Campo de repetições com largura garantida.
 class RepsField extends StatelessWidget {
   const RepsField({
     super.key,
@@ -157,13 +157,13 @@ class RepsField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
-      // Largura fixa: 36 + 36 + padding + espaço para 2–3 dígitos.
-      constraints: const BoxConstraints(minWidth: 118),
+      height: 72,
+      constraints: const BoxConstraints(minWidth: 126),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: C.surface2,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: C.strokeSoft),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -171,10 +171,11 @@ class RepsField extends StatelessWidget {
           StepButton(
             icon: Icons.remove,
             enabled: enabled,
+            size: 40,
             onTap: () => _step(-step),
           ),
           SizedBox(
-            width: 40,
+            width: 44,
             child: TextField(
               controller: controller,
               enabled: enabled,
@@ -186,9 +187,9 @@ class RepsField extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: AppFonts.display,
-                fontSize: 22,
+                fontSize: 28,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.4,
+                letterSpacing: -0.6,
                 color: C.text,
                 height: 1.1,
               ),
@@ -199,6 +200,7 @@ class RepsField extends StatelessWidget {
           StepButton(
             icon: Icons.add,
             enabled: enabled,
+            size: 40,
             onTap: () => _step(step),
           ),
         ],
@@ -207,17 +209,14 @@ class RepsField extends StatelessWidget {
   }
 }
 
-/// Linha de registro de série: [peso] [reps] [REGISTRAR].
-///
-/// Layout pensado para celular estreito: peso ocupa o espaço restante,
-/// reps e o botão têm larguras fixas para o número de reps nunca sumir.
+/// Linha de registro: [peso] [reps] [REGISTRAR].
 class SetInputRow extends StatelessWidget {
   const SetInputRow({
     super.key,
     required this.weightController,
     required this.repsController,
     required this.onRegister,
-    this.registerLabel = 'REGISTRAR',
+    this.registerLabel = 'CONCLUIR',
     this.enabled = true,
   });
 
@@ -232,14 +231,12 @@ class SetInputRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Peso: flexível, ocupa o que sobrar.
         Expanded(
           child: WeightField(controller: weightController, enabled: enabled),
         ),
         const SizedBox(width: 8),
-        // Reps: largura fixa — garante dígitos visíveis.
         SizedBox(
-          width: 126,
+          width: 132,
           child: RepsField(controller: repsController, enabled: enabled),
         ),
         const SizedBox(width: 8),
@@ -262,13 +259,13 @@ class _RegisterButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: onTap != null ? C.accent : C.accent.withValues(alpha: 0.45),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: SizedBox(
           width: 88,
-          height: 64,
+          height: 72,
           child: Center(
             child: Text(
               label,
@@ -276,7 +273,8 @@ class _RegisterButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
+                letterSpacing: 0.6,
+                height: 1.15,
                 color: onTap != null
                     ? C.accentInk
                     : C.accentInk.withValues(alpha: 0.5),

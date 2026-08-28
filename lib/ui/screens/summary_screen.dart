@@ -32,7 +32,7 @@ class SummaryScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                   color: C.accentSoft,
                 ),
-                child: const Icon(Icons.check_rounded, color: C.accent, size: 44),
+                child: const Icon(Icons.check_rounded, color: C.accentSecondary, size: 44),
               ),
               const SizedBox(height: 24),
               const Text(

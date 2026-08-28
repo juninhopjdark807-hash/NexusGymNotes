@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../data/session_repository.dart';
 import '../../state/providers.dart';
 import '../app_frame.dart';
+import '../widgets/nexus_card.dart';
 import 'session_detail_screen.dart';
 
 /// Histórico completo de treinos realizados, agrupado por data.
@@ -17,7 +18,6 @@ class HistoryScreen extends ConsumerWidget {
     final summaries =
         ref.watch(sessionsProvider).valueOrNull ?? const <SessionSummary>[];
 
-    // Agrupa por dia, preservando a ordem (mais recente primeiro).
     final groups = <String, List<SessionSummary>>{};
     final groupOrder = <String>[];
     for (final s in summaries) {
@@ -27,22 +27,44 @@ class HistoryScreen extends ConsumerWidget {
       if (!groupOrder.contains(key)) groupOrder.add(key);
     }
 
+    // Destaques do histórico (volume / maior carga proxy).
+    var totalSets = 0;
+    var totalMin = 0;
+    for (final s in summaries) {
+      totalSets += s.session.totalSets;
+      totalMin += s.session.durationMinutes;
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 26, 24, 6),
-              child: const Text(
-                'HISTÓRICO',
-                style: TextStyle(
-                  fontFamily: AppFonts.display,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 26, 24, 6),
+              child: Text('HISTÓRICO', style: AppText.displayM),
+            ),
+            if (summaries.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 4, 24, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _MiniStat(
+                        label: 'VOLUME',
+                        value: '$totalSets séries',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MiniStat(
+                        label: 'TEMPO',
+                        value: formatDuration(totalMin),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
             Expanded(
               child: summaries.isEmpty
                   ? const _HistoryEmpty()
@@ -57,13 +79,43 @@ class HistoryScreen extends ConsumerWidget {
                               style: AppText.label,
                             ),
                           ),
-                          for (final s in groups[key]!) _SessionCard(summary: s),
+                          for (final s in groups[key]!)
+                            _SessionCard(summary: s),
                         ],
                       ],
                     ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return NexusCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppText.label),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -81,44 +133,55 @@ class _SessionCard extends StatelessWidget {
     final meta =
         '${formatDuration(s.durationMinutes)} · ${s.exerciseCount} exercícios'
         '${cardio != null ? ' · ${cardio.type.label} ${cardio.durationMinutes} min' : ''}';
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
+    return NexusCard(
+      margin: const EdgeInsets.only(bottom: 10),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => AppFrame(child: SessionDetailScreen(sessionId: s.id)),
+          builder: (_) =>
+              AppFrame(child: SessionDetailScreen(sessionId: s.id)),
         ),
       ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: C.surface,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.templateName.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.3,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(meta, style: AppText.bodyFaint),
-                ],
-              ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: C.accentSoft,
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded, color: C.textFaint, size: 22),
-          ],
-        ),
+            child: const Icon(
+              Icons.check_rounded,
+              color: C.accentSecondary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s.templateName.toUpperCase(),
+                  style: const TextStyle(
+                    fontFamily: AppFonts.display,
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(meta, style: AppText.bodyFaint),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: C.textFaint,
+            size: 22,
+          ),
+        ],
       ),
     );
   }

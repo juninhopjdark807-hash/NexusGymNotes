@@ -163,7 +163,7 @@ class _ExerciseHistoryCard extends StatelessWidget {
                           fontFamily: AppFonts.display,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: C.accent,
+                          color: C.accentSecondary,
                         ),
                       ),
                     ],

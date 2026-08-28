@@ -261,12 +261,18 @@ class _ProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 3,
-      color: C.surface,
+      color: C.surface2,
       child: Align(
         alignment: Alignment.centerLeft,
         child: FractionallySizedBox(
           widthFactor: value.clamp(0.0, 1.0),
-          child: Container(color: C.accent),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [C.accent, C.accentSecondary],
+              ),
+            ),
+          ),
         ),
       ),
     );

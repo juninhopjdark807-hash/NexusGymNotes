@@ -34,7 +34,11 @@ class SetRow extends StatelessWidget {
           color: C.dangerSoft,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: C.danger, size: 20),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: C.danger,
+          size: 20,
+        ),
       ),
       child: Material(
         color: C.surface,
@@ -42,13 +46,30 @@ class SetRow extends StatelessWidget {
         child: InkWell(
           onTap: onEdit,
           borderRadius: BorderRadius.circular(16),
+          splashColor: C.accentSoft,
           child: Container(
-            height: 54,
+            height: 56,
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: C.strokeSoft),
+            ),
             child: Row(
               children: [
-                const Icon(Icons.check_rounded, color: C.accent, size: 18),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: C.accentSoft,
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: C.accentSecondary,
+                    size: 16,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text.rich(
@@ -58,7 +79,7 @@ class SetRow extends StatelessWidget {
                           text: formatKg(set.weightKg),
                           style: const TextStyle(
                             fontFamily: AppFonts.display,
-                            fontSize: 20,
+                            fontSize: 22,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.4,
                             color: C.text,
@@ -72,9 +93,9 @@ class SetRow extends StatelessWidget {
                           text: '  × ${set.reps}',
                           style: const TextStyle(
                             fontFamily: AppFonts.display,
-                            fontSize: 17,
+                            fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: C.textDim,
+                            color: C.accentSecondary,
                           ),
                         ),
                       ],

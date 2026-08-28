@@ -474,7 +474,9 @@ class _StageToggle extends StatelessWidget {
           decoration: BoxDecoration(
             color: on ? C.accentSoft : C.surface2,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: on ? C.accent : C.stroke),
+            border: Border.all(
+              color: on ? C.accent.withValues(alpha: 0.5) : C.stroke,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -482,7 +484,7 @@ class _StageToggle extends StatelessWidget {
               Icon(
                 on ? Icons.check_circle_rounded : Icons.circle_outlined,
                 size: 16,
-                color: on ? C.accent : C.textFaint,
+                color: on ? C.accentSecondary : C.textFaint,
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -492,7 +494,7 @@ class _StageToggle extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: on ? C.accent : C.textDim,
+                    color: on ? C.accentSecondary : C.textDim,
                   ),
                 ),
               ),
@@ -503,7 +505,7 @@ class _StageToggle extends StatelessWidget {
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.6,
-                  color: on ? C.accent : C.textFaint,
+                  color: on ? C.accentSecondary : C.textFaint,
                 ),
               ),
             ],

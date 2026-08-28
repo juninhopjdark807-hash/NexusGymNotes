@@ -216,7 +216,7 @@ class _ExerciseBlock extends StatelessWidget {
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1,
-                  color: C.accent,
+                  color: C.accentSecondary,
                 ),
               ),
             ),

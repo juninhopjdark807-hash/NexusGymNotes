@@ -7,6 +7,7 @@ import '../../domain/logic/exercise_name.dart';
 import '../../domain/models/exercise.dart';
 import '../../state/providers.dart';
 import '../widgets/app_button.dart';
+import '../widgets/muscle_icon.dart';
 
 /// Folha para adicionar exercícios ao treino (Fase 2):
 /// biblioteca agrupada por grupo muscular + busca + criar personalizado.
@@ -327,10 +328,16 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     for (final (group, items) in groups) {
       if (i == index) {
         return Padding(
-          padding: EdgeInsets.only(top: index == 0 ? 0 : 14, bottom: 6),
-          child: Text(
-            group.label.toUpperCase(),
-            style: AppText.label,
+          padding: EdgeInsets.only(top: index == 0 ? 4 : 16, bottom: 8),
+          child: Row(
+            children: [
+              MuscleBadge(group: group, size: 28, active: true),
+              const SizedBox(width: 10),
+              Text(
+                group.label.toUpperCase(),
+                style: AppText.labelAccent,
+              ),
+            ],
           ),
         );
       }
@@ -477,11 +484,27 @@ class _ExerciseTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
+        borderRadius: BorderRadius.circular(14),
+        splashColor: C.accentSoft,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          decoration: BoxDecoration(
+            color: alreadyAdded ? C.accentSoft.withValues(alpha: 0.25) : C.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: alreadyAdded ? C.accent.withValues(alpha: 0.35) : C.strokeSoft,
+            ),
+          ),
           child: Row(
             children: [
+              MuscleIcon(
+                group: exercise.muscleGroup,
+                size: 16,
+                color: alreadyAdded ? C.accentSecondary : C.textFaint,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -491,7 +514,7 @@ class _ExerciseTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: alreadyAdded ? C.textFaint : C.text,
+                        color: alreadyAdded ? C.textDim : C.text,
                       ),
                     ),
                     if (exercise.isCustom) ...[
@@ -510,7 +533,7 @@ class _ExerciseTile extends StatelessWidget {
                 ),
               ),
               Icon(
-                alreadyAdded ? Icons.check_rounded : Icons.add_rounded,
+                alreadyAdded ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
                 color: alreadyAdded ? C.accent : C.textDim,
                 size: 20,
               ),

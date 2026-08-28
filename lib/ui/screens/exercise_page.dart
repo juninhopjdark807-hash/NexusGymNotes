@@ -380,20 +380,26 @@ class _SessionStageChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
+        splashColor: C.accentSoft,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: on ? C.accentSoft : C.surface2,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: on ? C.accent : C.stroke),
+            border: Border.all(
+              color: on ? C.accent.withValues(alpha: 0.55) : C.stroke,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                on ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                on
+                    ? Icons.check_circle_rounded
+                    : Icons.add_circle_outline_rounded,
                 size: 18,
-                color: on ? C.accent : C.textFaint,
+                color: on ? C.accentSecondary : C.textFaint,
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -403,7 +409,7 @@ class _SessionStageChip extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: on ? C.accent : C.textDim,
+                    color: on ? C.accentSecondary : C.textDim,
                   ),
                 ),
               ),
@@ -442,6 +448,7 @@ class _StageSection extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: C.accentSoft,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: C.accent.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   '${formatKg(suggestionKg!)} kg',
@@ -449,7 +456,7 @@ class _StageSection extends StatelessWidget {
                     fontFamily: AppFonts.display,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: C.accent,
+                    color: C.accentSecondary,
                   ),
                 ),
               ),
@@ -488,7 +495,7 @@ class _ReferenceRow extends StatelessWidget {
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.6,
-                        color: C.accent,
+                        color: C.accentSecondary,
                       ),
                     ),
                     const TextSpan(

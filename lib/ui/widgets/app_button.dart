@@ -18,8 +18,6 @@ class AppButton extends StatelessWidget {
 
   final String label;
   final VoidCallback? onPressed;
-
-  /// `null` desabilita o botão.
   final AppButtonVariant variant;
   final IconData? icon;
   final bool expanded;
@@ -38,9 +36,12 @@ class AppButton extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onPressed : null,
         borderRadius: BorderRadius.circular(18),
+        splashColor: C.accentSoft,
         child: Opacity(
           opacity: enabled ? 1 : 0.45,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
             height: height,
             width: expanded ? double.infinity : null,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -49,6 +50,15 @@ class AppButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               border: variant == AppButtonVariant.ghost
                   ? Border.all(color: C.stroke)
+                  : null,
+              boxShadow: variant == AppButtonVariant.primary && enabled
+                  ? [
+                      BoxShadow(
+                        color: C.accent.withValues(alpha: 0.28),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
                   : null,
             ),
             child: Center(
@@ -87,9 +97,19 @@ class AppBackButton extends StatelessWidget {
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onPressed,
-        child: const Padding(
-          padding: EdgeInsets.all(8),
-          child: Icon(Icons.arrow_back_ios_new_rounded, color: C.textDim, size: 18),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: C.surface2,
+            border: Border.all(color: C.strokeSoft),
+          ),
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: C.textDim,
+            size: 16,
+          ),
         ),
       ),
     );
