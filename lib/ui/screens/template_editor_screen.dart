@@ -127,9 +127,14 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
         existingExerciseIds: existingIds,
         onAdded: (exerciseId) {
           setState(() {
+            // AQ/PR ligados só no primeiro exercício do treino
+            // (típicos do início da sessão); demais desligados.
+            final isFirst = _items.isEmpty;
             _items.add(WorkoutExercise(
               id: ref.read(templateRepositoryProvider).newId(),
               exerciseId: exerciseId,
+              warmupEnabled: isFirst,
+              prepEnabled: isFirst,
             ));
           });
         },
@@ -232,38 +237,63 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
               )
             else
               Expanded(
-                child: ReorderableListView(
-                  key: const ValueKey('template-reorder'),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  buildDefaultDragHandles: false,
-                  // onReorderItem já ajusta newIndex (API pós v3.41).
-                  onReorderItem: (oldIndex, newIndex) {
-                    setState(() {
-                      final item = _items.removeAt(oldIndex);
-                      _items.insert(newIndex, item);
-                    });
-                  },
+                child: Column(
                   children: [
-                    for (var i = 0; i < _items.length; i++)
-                      _ItemRow(
-                        key: ValueKey(_items[i].id),
-                        index: i,
-                        item: _items[i],
-                        name: exerciseById[_items[i].exerciseId]?.name ?? 'Exercício',
-                        muscle:
-                            exerciseById[_items[i].exerciseId]?.muscleGroup.label ?? '',
-                        onToggleWarmup: () => setState(
-                              () => _items[i] = _items[i].copyWith(
-                                warmupEnabled: !_items[i].warmupEnabled,
-                              ),
-                            ),
-                        onTogglePrep: () => setState(
-                              () => _items[i] = _items[i].copyWith(
-                                prepEnabled: !_items[i].prepEnabled,
-                              ),
-                            ),
-                        onRemove: () => setState(() => _items.removeAt(i)),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(24, 4, 24, 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'AQ = aquecimento · PR = preparatória\n'
+                          'Toque para ligar/desligar em cada exercício',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            height: 1.35,
+                            color: C.textFaint,
+                          ),
+                        ),
                       ),
+                    ),
+                    Expanded(
+                      child: ReorderableListView(
+                        key: const ValueKey('template-reorder'),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        buildDefaultDragHandles: false,
+                        // onReorderItem já ajusta newIndex (API pós v3.41).
+                        onReorderItem: (oldIndex, newIndex) {
+                          setState(() {
+                            final item = _items.removeAt(oldIndex);
+                            _items.insert(newIndex, item);
+                          });
+                        },
+                        children: [
+                          for (var i = 0; i < _items.length; i++)
+                            _ItemRow(
+                              key: ValueKey(_items[i].id),
+                              index: i,
+                              item: _items[i],
+                              name: exerciseById[_items[i].exerciseId]?.name ??
+                                  'Exercício',
+                              muscle: exerciseById[_items[i].exerciseId]
+                                      ?.muscleGroup
+                                      .label ??
+                                  '',
+                              onToggleWarmup: () => setState(
+                                    () => _items[i] = _items[i].copyWith(
+                                      warmupEnabled: !_items[i].warmupEnabled,
+                                    ),
+                                  ),
+                              onTogglePrep: () => setState(
+                                    () => _items[i] = _items[i].copyWith(
+                                      prepEnabled: !_items[i].prepEnabled,
+                                    ),
+                                  ),
+                              onRemove: () =>
+                                  setState(() => _items.removeAt(i)),
+                            ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -329,61 +359,88 @@ class _ItemRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: C.surface,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // Handle manual (buildDefaultDragHandles: false).
-          ReorderableDragStartListener(
-            index: index,
-            child: const Icon(
-              Icons.drag_indicator_rounded,
-              color: C.textFaint,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              ReorderableDragStartListener(
+                index: index,
+                child: const Icon(
+                  Icons.drag_indicator_rounded,
+                  color: C.textFaint,
+                  size: 20,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  muscle.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    letterSpacing: 1.2,
-                    color: C.textFaint,
-                    fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      muscle.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        letterSpacing: 1.2,
+                        color: C.textFaint,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onRemove,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: C.textFaint,
+                      size: 18,
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          _StageToggle(label: 'AQ', on: item.warmupEnabled, onTap: onToggleWarmup),
-          const SizedBox(width: 8),
-          _StageToggle(label: 'PR', on: item.prepEnabled, onTap: onTogglePrep),
-          const SizedBox(width: 10),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onRemove,
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(Icons.close_rounded, color: C.textFaint, size: 18),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _StageToggle(
+                  label: 'Aquecimento',
+                  shortLabel: 'AQ',
+                  on: item.warmupEnabled,
+                  onTap: onToggleWarmup,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StageToggle(
+                  label: 'Preparatória',
+                  shortLabel: 'PR',
+                  on: item.prepEnabled,
+                  onTap: onTogglePrep,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -391,11 +448,17 @@ class _ItemRow extends StatelessWidget {
   }
 }
 
-/// Alternador compacto de etapa (AQ = aquecimento, PR = preparatória).
+/// Alternador de etapa (aquecimento / preparatória) por exercício.
 class _StageToggle extends StatelessWidget {
-  const _StageToggle({required this.label, required this.on, required this.onTap});
+  const _StageToggle({
+    required this.label,
+    required this.shortLabel,
+    required this.on,
+    required this.onTap,
+  });
 
   final String label;
+  final String shortLabel;
   final bool on;
   final VoidCallback onTap;
 
@@ -405,22 +468,45 @@ class _StageToggle extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: on ? C.accentSoft : C.surface2,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: on ? C.accent : C.stroke),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-              color: on ? C.accent : C.textFaint,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                on ? Icons.check_circle_rounded : Icons.circle_outlined,
+                size: 16,
+                color: on ? C.accent : C.textFaint,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: on ? C.accent : C.textDim,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                shortLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  color: on ? C.accent : C.textFaint,
+                ),
+              ),
+            ],
           ),
         ),
       ),

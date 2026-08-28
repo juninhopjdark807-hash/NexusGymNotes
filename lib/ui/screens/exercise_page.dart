@@ -200,6 +200,9 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
       },
     );
 
+    final warmupOn = widget.item.warmupEnabled;
+    final prepOn = widget.item.prepEnabled;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 6, 24, 150),
       child: Column(
@@ -217,12 +220,30 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
             widget.exercise.muscleGroup.label.toUpperCase(),
             style: AppText.label,
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
           // Última referência (maior carga de trabalho anterior)
           _ReferenceRow(referenceKg: referenceKg),
-          const SizedBox(height: 26),
+          const SizedBox(height: 18),
+          // Liga/desliga AQ e PR nesta sessão (sem alterar o template).
+          _SessionStageToggles(
+            warmupOn: warmupOn,
+            prepOn: prepOn,
+            onToggleWarmup: () => ref
+                .read(activeWorkoutProvider.notifier)
+                .setItemStages(
+                  widget.item.id,
+                  warmupEnabled: !warmupOn,
+                ),
+            onTogglePrep: () => ref
+                .read(activeWorkoutProvider.notifier)
+                .setItemStages(
+                  widget.item.id,
+                  prepEnabled: !prepOn,
+                ),
+          ),
+          const SizedBox(height: 22),
           // Aquecimento
-          if (widget.item.warmupEnabled) ...[
+          if (warmupOn) ...[
             _StageSection(
               title: 'AQUECIMENTO',
               suggestionKg: referenceKg == null
@@ -232,8 +253,11 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
                   ? SetInputRow(
                       weightController: _warmupWeight,
                       repsController: _warmupReps,
-                      onRegister: () =>
-                          _register(SetStage.aquecimento, _warmupWeight, _warmupReps),
+                      onRegister: () => _register(
+                        SetStage.aquecimento,
+                        _warmupWeight,
+                        _warmupReps,
+                      ),
                     )
                   : SetRow(
                       set: warmupSet,
@@ -244,7 +268,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
             const SizedBox(height: 18),
           ],
           // Preparatória
-          if (widget.item.prepEnabled) ...[
+          if (prepOn) ...[
             _StageSection(
               title: 'PREPARATÓRIA',
               suggestionKg: referenceKg == null
@@ -254,8 +278,11 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
                   ? SetInputRow(
                       weightController: _prepWeight,
                       repsController: _prepReps,
-                      onRegister: () =>
-                          _register(SetStage.preparatoria, _prepWeight, _prepReps),
+                      onRegister: () => _register(
+                        SetStage.preparatoria,
+                        _prepWeight,
+                        _prepReps,
+                      ),
                     )
                   : SetRow(
                       set: prepSet,
@@ -271,19 +298,118 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
           SetInputRow(
             weightController: _workWeight,
             repsController: _workReps,
-            onRegister: () => _register(SetStage.trabalho, _workWeight, _workReps),
+            onRegister: () =>
+                _register(SetStage.trabalho, _workWeight, _workReps),
           ),
           const SizedBox(height: 10),
           if (workSets.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text('Nenhuma série registrada', style: AppText.bodyFaint),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                'Nenhuma série registrada',
+                style: AppText.bodyFaint,
+              ),
             )
           else
             ...workSets.map(
-              (s) => SetRow(set: s, onEdit: () => _editSet(s), onDelete: () => _deleteSet(s)),
+              (s) => SetRow(
+                set: s,
+                onEdit: () => _editSet(s),
+                onDelete: () => _deleteSet(s),
+              ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Chips para ligar/desligar AQ e PR durante a execução do treino.
+class _SessionStageToggles extends StatelessWidget {
+  const _SessionStageToggles({
+    required this.warmupOn,
+    required this.prepOn,
+    required this.onToggleWarmup,
+    required this.onTogglePrep,
+  });
+
+  final bool warmupOn;
+  final bool prepOn;
+  final VoidCallback onToggleWarmup;
+  final VoidCallback onTogglePrep;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _SessionStageChip(
+            label: 'Aquecimento',
+            on: warmupOn,
+            onTap: onToggleWarmup,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _SessionStageChip(
+            label: 'Preparatória',
+            on: prepOn,
+            onTap: onTogglePrep,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SessionStageChip extends StatelessWidget {
+  const _SessionStageChip({
+    required this.label,
+    required this.on,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: on ? C.accentSoft : C.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: on ? C.accent : C.stroke),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                on ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                size: 18,
+                color: on ? C.accent : C.textFaint,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: on ? C.accent : C.textDim,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

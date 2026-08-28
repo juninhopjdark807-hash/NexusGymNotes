@@ -43,6 +43,16 @@ class ActiveWorkout {
       page: page,
     );
   }
+
+  ActiveWorkout copyWithItems(List<WorkoutExercise> items) {
+    return ActiveWorkout(
+      sessionId: sessionId,
+      templateName: templateName,
+      startedAt: startedAt,
+      items: items,
+      page: page,
+    );
+  }
 }
 
 /// Controla o treino em andamento: iniciar, retomar, navegar
@@ -112,6 +122,31 @@ class ActiveWorkoutNotifier extends Notifier<ActiveWorkout?> {
     final s = state;
     if (s == null || s.page <= 0) return;
     goToPage(s.page - 1);
+  }
+
+  /// Liga/desliga aquecimento ou preparatória do exercício [itemId]
+  /// apenas nesta sessão (não altera o template salvo).
+  void setItemStages(
+    String itemId, {
+    bool? warmupEnabled,
+    bool? prepEnabled,
+  }) {
+    final s = state;
+    if (s == null) return;
+    final index = s.items.indexWhere((e) => e.id == itemId);
+    if (index < 0) return;
+    final current = s.items[index];
+    final next = current.copyWith(
+      warmupEnabled: warmupEnabled ?? current.warmupEnabled,
+      prepEnabled: prepEnabled ?? current.prepEnabled,
+    );
+    if (next.warmupEnabled == current.warmupEnabled &&
+        next.prepEnabled == current.prepEnabled) {
+      return;
+    }
+    final items = List<WorkoutExercise>.of(s.items);
+    items[index] = next;
+    state = s.copyWithItems(items);
   }
 
   /// Encerra o treino, salvando o cardio (quando informado).

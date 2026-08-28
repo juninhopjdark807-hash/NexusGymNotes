@@ -205,34 +205,19 @@ class _SequenceRow extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (warmup)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: C.accentSoft,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: const Text(
-                        'AQ',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                          color: C.accent,
+                  if (warmup || prep) ...[
+                    if (warmup)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ),
-                    ),
-                  if (prep)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: C.accentSoft,
                           borderRadius: BorderRadius.circular(7),
                         ),
                         child: const Text(
-                          'PR',
+                          'AQ',
                           style: TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w800,
@@ -240,6 +225,37 @@ class _SequenceRow extends StatelessWidget {
                             color: C.accent,
                           ),
                         ),
+                      ),
+                    if (prep)
+                      Padding(
+                        padding: EdgeInsets.only(left: warmup ? 6 : 0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: C.accentSoft,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: const Text(
+                            'PR',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: C.accent,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ] else
+                    const Text(
+                      'só trabalho',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: C.textFaint,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                 ],
