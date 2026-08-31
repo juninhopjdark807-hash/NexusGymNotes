@@ -183,6 +183,21 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
     final workSets = mine.where((s) => s.stage == SetStage.trabalho).toList()
       ..sort((a, b) => b.order.compareTo(a.order));
 
+    // Séries do exercício em ordem cronológica (para intervalo).
+    final chronological = List<SetRecord>.of(mine)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final intervalById = <String, String>{};
+    for (var i = 0; i < chronological.length; i++) {
+      if (i == 0) {
+        intervalById[chronological[i].id] = '—';
+      } else {
+        final delta = chronological[i]
+            .createdAt
+            .difference(chronological[i - 1].createdAt);
+        intervalById[chronological[i].id] = formatInterval(delta);
+      }
+    }
+
     final reference = ref.watch(referenceProvider(exerciseId));
     // Prefill quando a referência carregar. Riverpod 2.x não tem
     // fireImmediately em ref.listen — aplica no valor já resolvido
@@ -263,6 +278,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
                       set: warmupSet,
                       onEdit: () => _editSet(warmupSet),
                       onDelete: () => _deleteSet(warmupSet),
+                      intervalLabel: intervalById[warmupSet.id],
                     ),
             ),
             const SizedBox(height: 18),
@@ -288,6 +304,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
                       set: prepSet,
                       onEdit: () => _editSet(prepSet),
                       onDelete: () => _deleteSet(prepSet),
+                      intervalLabel: intervalById[prepSet.id],
                     ),
             ),
             const SizedBox(height: 26),
@@ -311,13 +328,24 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
               ),
             )
           else
-            ...workSets.map(
-              (s) => SetRow(
-                set: s,
-                onEdit: () => _editSet(s),
-                onDelete: () => _deleteSet(s),
-              ),
-            ),
+            ...() {
+              // Numeração pela ordem de registro (mais antiga = 1).
+              final ascending = List<SetRecord>.of(workSets)
+                ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+              final numberById = <String, int>{
+                for (var i = 0; i < ascending.length; i++)
+                  ascending[i].id: i + 1,
+              };
+              return workSets.map(
+                (s) => SetRow(
+                  set: s,
+                  setNumber: numberById[s.id],
+                  onEdit: () => _editSet(s),
+                  onDelete: () => _deleteSet(s),
+                  intervalLabel: intervalById[s.id],
+                ),
+              );
+            }(),
         ],
       ),
     );

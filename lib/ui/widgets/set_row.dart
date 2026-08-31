@@ -8,20 +8,30 @@ import '../../domain/models/set_record.dart';
 ///
 /// - Tocar: editar peso/reps.
 /// - Deslizar para a esquerda: excluir (com desfazer).
+/// - [intervalLabel]: tempo desde a série anterior (null = não exibir).
 class SetRow extends StatelessWidget {
   const SetRow({
     super.key,
     required this.set,
     required this.onEdit,
     required this.onDelete,
+    this.intervalLabel,
+    this.setNumber,
   });
 
   final SetRecord set;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
+  /// Texto do intervalo (ex.: "01:42" ou "—"). Null = oculto.
+  final String? intervalLabel;
+
+  /// Número da série na etapa (opcional).
+  final int? setNumber;
+
   @override
   Widget build(BuildContext context) {
+    final hasInterval = intervalLabel != null;
     return Dismissible(
       key: ValueKey('set-${set.id}'),
       direction: DismissDirection.endToStart,
@@ -48,9 +58,9 @@ class SetRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           splashColor: C.accentSoft,
           child: Container(
-            height: 56,
+            constraints: BoxConstraints(minHeight: hasInterval ? 64 : 56),
             margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: C.strokeSoft),
@@ -72,34 +82,62 @@ class SetRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text.rich(
                         TextSpan(
-                          text: formatKg(set.weightKg),
-                          style: const TextStyle(
-                            fontFamily: AppFonts.display,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.4,
-                            color: C.text,
-                          ),
+                          children: [
+                            if (setNumber != null)
+                              TextSpan(
+                                text: 'S$setNumber  ',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: C.textFaint,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            TextSpan(
+                              text: formatKg(set.weightKg),
+                              style: const TextStyle(
+                                fontFamily: AppFonts.display,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.4,
+                                color: C.text,
+                              ),
+                            ),
+                            const TextSpan(
+                              text: ' kg',
+                              style: TextStyle(fontSize: 12, color: C.textFaint),
+                            ),
+                            TextSpan(
+                              text: '  × ${set.reps}',
+                              style: const TextStyle(
+                                fontFamily: AppFonts.display,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: C.accentSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                        const TextSpan(
-                          text: ' kg',
-                          style: TextStyle(fontSize: 12, color: C.textFaint),
-                        ),
-                        TextSpan(
-                          text: '  × ${set.reps}',
+                      ),
+                      if (hasInterval) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Intervalo: $intervalLabel',
                           style: const TextStyle(
-                            fontFamily: AppFonts.display,
-                            fontSize: 18,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w600,
-                            color: C.accentSecondary,
+                            color: C.textFaint,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
                 const Icon(Icons.edit_rounded, color: C.textFaint, size: 15),

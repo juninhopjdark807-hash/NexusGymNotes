@@ -177,6 +177,74 @@ class SessionRepository {
     _emit();
   }
 
+  /// Persiste a página atual da execução (para retomar depois).
+  Future<void> updateCurrentPage(String sessionId, int page) async {
+    await _db.update(
+      'sessions',
+      {'current_page': page},
+      where: 'id = ?',
+      whereArgs: [sessionId],
+    );
+    // Sem _emit: evita rebuild de listas a cada swipe.
+  }
+
+  // -------------------------------------------------------- notas do exercício
+
+  /// Nota da execução de [exerciseId] nesta [sessionId] (null se vazia).
+  Future<String?> noteForExercise(String sessionId, String exerciseId) async {
+    final rows = await _db.query(
+      'exercise_notes',
+      where: 'session_id = ? AND exercise_id = ?',
+      whereArgs: [sessionId, exerciseId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final note = (rows.first['note'] as String?)?.trim() ?? '';
+    return note.isEmpty ? null : note;
+  }
+
+  /// Salva ou atualiza a nota. Texto vazio remove o registro.
+  Future<void> saveExerciseNote({
+    required String sessionId,
+    required String exerciseId,
+    required String note,
+  }) async {
+    final trimmed = note.trim();
+    if (trimmed.isEmpty) {
+      await _db.delete(
+        'exercise_notes',
+        where: 'session_id = ? AND exercise_id = ?',
+        whereArgs: [sessionId, exerciseId],
+      );
+    } else {
+      final existing = await _db.query(
+        'exercise_notes',
+        columns: ['id'],
+        where: 'session_id = ? AND exercise_id = ?',
+        whereArgs: [sessionId, exerciseId],
+        limit: 1,
+      );
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (existing.isEmpty) {
+        await _db.insert('exercise_notes', {
+          'id': _uuid.v4(),
+          'session_id': sessionId,
+          'exercise_id': exerciseId,
+          'note': trimmed,
+          'updated_at': now,
+        });
+      } else {
+        await _db.update(
+          'exercise_notes',
+          {'note': trimmed, 'updated_at': now},
+          where: 'id = ?',
+          whereArgs: [existing.first['id']],
+        );
+      }
+    }
+    _emit();
+  }
+
   /// Séries de **trabalho** da execução anterior do exercício
   /// (excluindo a sessão atual, quando em andamento).
   ///
@@ -275,6 +343,7 @@ class SessionRepository {
           : DateTime.fromMillisecondsSinceEpoch(r['ended_at'] as int),
       exerciseCount: (r['exercise_count'] as int?) ?? 0,
       totalSets: (r['total_sets'] as int?) ?? 0,
+      currentPage: (r['current_page'] as int?) ?? 0,
     );
   }
 
@@ -287,6 +356,7 @@ class SessionRepository {
         'ended_at': s.endedAt?.millisecondsSinceEpoch,
         'exercise_count': s.exerciseCount,
         'total_sets': s.totalSets,
+        'current_page': s.currentPage,
       };
 
   static SetRecord _setFromRow(Map<String, Object?> r) {

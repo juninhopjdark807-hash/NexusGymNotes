@@ -19,10 +19,38 @@ class TemplateScreen extends ConsumerWidget {
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     final template = ref.read(templateProvider(templateId)).valueOrNull;
     if (template == null) return;
-    final started = await ref.read(activeWorkoutProvider.notifier).start(template);
+    final started =
+        await ref.read(activeWorkoutProvider.notifier).start(template);
     if (started && context.mounted) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AppFrame(child: WorkoutScreen())),
+        MaterialPageRoute(
+          builder: (_) => const AppFrame(child: WorkoutScreen()),
+        ),
+      );
+    }
+  }
+
+  Future<void> _resume(BuildContext context, WidgetRef ref) async {
+    final active = ref.read(activeWorkoutProvider);
+    if (active != null) {
+      if (context.mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const AppFrame(child: WorkoutScreen()),
+          ),
+        );
+      }
+      return;
+    }
+    final session = ref.read(activeSessionProvider).valueOrNull;
+    if (session == null) return;
+    final ok =
+        await ref.read(activeWorkoutProvider.notifier).resume(session.id);
+    if (ok && context.mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const AppFrame(child: WorkoutScreen()),
+        ),
       );
     }
   }
@@ -32,11 +60,18 @@ class TemplateScreen extends ConsumerWidget {
     final template = ref.watch(templateProvider(templateId)).valueOrNull;
     if (template == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(strokeWidth: 2, color: C.textFaint)),
+        body: Center(
+          child: CircularProgressIndicator(strokeWidth: 2, color: C.textFaint),
+        ),
       );
     }
-    final exercises = ref.watch(exercisesProvider).valueOrNull ?? const <Exercise>[];
+    final exercises =
+        ref.watch(exercisesProvider).valueOrNull ?? const <Exercise>[];
     final exerciseById = {for (final e in exercises) e.id: e};
+    final activeMem = ref.watch(activeWorkoutProvider);
+    final activeDb = ref.watch(activeSessionProvider).valueOrNull;
+    final inProgress = activeMem != null ||
+        (activeDb != null && activeDb.templateId == templateId);
 
     return Scaffold(
       body: SafeArea(
@@ -112,21 +147,31 @@ class TemplateScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   AppButton(
-                    label: 'Iniciar treino',
-                    icon: Icons.play_arrow_rounded,
-                    onPressed:
-                        template.exercises.isEmpty ? null : () => _start(context, ref),
+                    label: inProgress ? 'Voltar ao treino' : 'Iniciar treino',
+                    icon: inProgress
+                        ? Icons.play_circle_outline_rounded
+                        : Icons.play_arrow_rounded,
+                    onPressed: template.exercises.isEmpty
+                        ? null
+                        : () => inProgress
+                            ? _resume(context, ref)
+                            : _start(context, ref),
                   ),
                   const SizedBox(height: 10),
                   AppButton(
                     label: 'Editar treino',
                     variant: AppButtonVariant.ghost,
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AppFrame(child: TemplateEditorScreen(templateId: templateId)),
-                      ),
-                    ),
+                    onPressed: inProgress
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AppFrame(
+                                  child: TemplateEditorScreen(
+                                    templateId: templateId,
+                                  ),
+                                ),
+                              ),
+                            ),
                   ),
                 ],
               ),

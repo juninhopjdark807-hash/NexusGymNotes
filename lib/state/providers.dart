@@ -153,3 +153,16 @@ final exerciseSessionsProvider =
             .handleError((Object e) => const <ExerciseSessionInfo>[]);
       },
     );
+
+/// Nota da execução de um exercício na sessão ativa (null se vazia).
+/// Family key: `"$sessionId|$exerciseId"`.
+final exerciseNoteProvider = StreamProvider.family<String?, String>((ref, key) {
+  final parts = key.split('|');
+  if (parts.length != 2) return Stream.value(null);
+  final sessionId = parts[0];
+  final exerciseId = parts[1];
+  final repo = ref.watch(sessionRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.noteForExercise(sessionId, exerciseId))
+      .handleError((Object e) => null);
+});

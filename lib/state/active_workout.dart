@@ -89,14 +89,17 @@ class ActiveWorkoutNotifier extends Notifier<ActiveWorkout?> {
     final session = await _sessions.getById(sessionId);
     if (session == null || session.isCompleted) return false;
     final items = session.templateId != null
-        ? (await _templates.getById(session.templateId!))?.exercises ?? const <WorkoutExercise>[]
+        ? (await _templates.getById(session.templateId!))?.exercises ??
+            const <WorkoutExercise>[]
         : const <WorkoutExercise>[];
+    final maxPage = items.length; // cardio
+    final page = session.currentPage.clamp(0, maxPage);
     state = ActiveWorkout(
       sessionId: session.id,
       templateName: session.templateName,
       startedAt: session.startedAt,
       items: items,
-      page: 0,
+      page: page,
     );
     return true;
   }
@@ -110,6 +113,8 @@ class ActiveWorkoutNotifier extends Notifier<ActiveWorkout?> {
     final p = page < 0 ? 0 : (page > max ? max : page);
     if (p == s.page) return;
     state = s.copyWithPage(p);
+    // Persiste página para "Voltar ao treino" (fire-and-forget).
+    _sessions.updateCurrentPage(s.sessionId, p);
   }
 
   void next() {

@@ -34,7 +34,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   @override
   void initState() {
     super.initState();
-    _pages = PageController();
+    // Restaura a página salva (Voltar ao treino).
+    final initial =
+        ref.read(activeWorkoutProvider)?.page ?? 0;
+    _pages = PageController(initialPage: initial);
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _tick = DateTime.now());
     });
@@ -234,13 +237,12 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                 SafeArea(
                   top: false,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
-                    child: AppButton(
-                      label: workout.isLastExercise
-                          ? 'Ir para cardio'
-                          : 'Próximo exercício',
-                      icon: Icons.chevron_right_rounded,
-                      onPressed: _goNext,
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                    child: _WorkoutFooter(
+                      workout: workout,
+                      exerciseById: exerciseById,
+                      onNext: _goNext,
+                      onFinish: () => _goTo(workout.items.length),
                     ),
                   ),
                 ),
@@ -248,6 +250,182 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Rodapé: observação + próximo exercício / finalizar.
+class _WorkoutFooter extends ConsumerWidget {
+  const _WorkoutFooter({
+    required this.workout,
+    required this.exerciseById,
+    required this.onNext,
+    required this.onFinish,
+  });
+
+  final ActiveWorkout workout;
+  final Map<String, Exercise> exerciseById;
+  final VoidCallback onNext;
+  final VoidCallback onFinish;
+
+  Future<void> _openNote(BuildContext context, WidgetRef ref) async {
+    final item = workout.currentExercise;
+    if (item == null) return;
+    final exercise = exerciseById[item.exerciseId];
+    final existing = await ref
+        .read(sessionRepositoryProvider)
+        .noteForExercise(workout.sessionId, item.exerciseId);
+    if (!context.mounted) return;
+    final controller = TextEditingController(text: existing ?? '');
+    final saved = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: C.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final inset = MediaQuery.viewInsetsOf(ctx).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + inset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: C.stroke,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'OBSERVAÇÃO',
+                style: AppText.label,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                exercise?.name ?? 'Exercício',
+                style: const TextStyle(
+                  fontFamily: AppFonts.display,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Nota desta execução — não altera o exercício no catálogo.',
+                style: AppText.bodyFaint,
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                maxLines: 4,
+                maxLength: 280,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  hintText: 'Ex.: Aumentar carga na próxima sessão',
+                ),
+              ),
+              const SizedBox(height: 12),
+              AppButton(
+                label: 'Salvar',
+                onPressed: () => Navigator.of(ctx).pop(controller.text),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(''),
+                child: const Text(
+                  'LIMPAR OBSERVAÇÃO',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                    color: C.textDim,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    controller.dispose();
+    if (saved == null) return;
+    await ref.read(sessionRepositoryProvider).saveExerciseNote(
+          sessionId: workout.sessionId,
+          exerciseId: item.exerciseId,
+          note: saved,
+        );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final item = workout.currentExercise;
+    final noteKey = item == null
+        ? ''
+        : '${workout.sessionId}|${item.exerciseId}';
+    final hasNote = noteKey.isEmpty
+        ? false
+        : (ref.watch(exerciseNoteProvider(noteKey)).valueOrNull != null);
+
+    String nextLabel;
+    VoidCallback onPressed;
+    if (workout.isLastExercise) {
+      nextLabel = 'Finalizar treino';
+      onPressed = onFinish;
+    } else {
+      final nextItem = workout.items[workout.page + 1];
+      final nextName =
+          exerciseById[nextItem.exerciseId]?.name ?? 'Exercício';
+      nextLabel = 'Próximo: $nextName';
+      onPressed = onNext;
+    }
+
+    return Row(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: item == null ? null : () => _openNote(context, ref),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: C.surface2,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: hasNote
+                      ? C.accent.withValues(alpha: 0.5)
+                      : C.stroke,
+                ),
+              ),
+              child: Icon(
+                hasNote
+                    ? Icons.sticky_note_2_rounded
+                    : Icons.sticky_note_2_outlined,
+                color: hasNote ? C.accentSecondary : C.textDim,
+                size: 22,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: AppButton(
+            label: nextLabel,
+            icon: Icons.chevron_right_rounded,
+            height: 56,
+            onPressed: onPressed,
+          ),
+        ),
+      ],
     );
   }
 }

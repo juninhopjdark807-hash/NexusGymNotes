@@ -65,5 +65,18 @@ String formatElapsed(Duration d) {
   return '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 }
 
+/// Intervalo entre séries: "01:42" (mm:ss). Valores ≥ 1h usam "H:MM:SS".
+String formatInterval(Duration d) {
+  if (d.isNegative) return '—';
+  final totalSec = d.inSeconds;
+  final h = totalSec ~/ 3600;
+  final m = (totalSec % 3600) ~/ 60;
+  final s = totalSec % 60;
+  if (h > 0) {
+    return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+}
+
 /// Índice do dia da semana (0 = domingo).
 int weekdayIndex(DateTime d) => d.weekday % 7;
