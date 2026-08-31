@@ -26,8 +26,8 @@ class AppDatabase {
 
   static const String _name = 'nexus_gym.db';
 
-  /// v1 = Fase 1 · v2 = biblioteca · v3 = notas de exercício na sessão
-  static const int _version = 3;
+  /// v1–v3 = fases anteriores · v4 = perfil, avaliações, cardio expandido
+  static const int _version = 4;
 
   static Future<AppDatabase> open() async {
     if (_instance != null) return _instance!;
@@ -43,6 +43,7 @@ class AppDatabase {
         await _createV1Schema(database);
         await _upgradeExercisesToV2(database);
         await _upgradeToV3(database);
+        await _upgradeToV4(database);
       },
       onUpgrade: (database, oldVersion, newVersion) async {
         if (oldVersion < 2 && newVersion >= 2) {
@@ -50,6 +51,9 @@ class AppDatabase {
         }
         if (oldVersion < 3 && newVersion >= 3) {
           await _upgradeToV3(database);
+        }
+        if (oldVersion < 4 && newVersion >= 4) {
+          await _upgradeToV4(database);
         }
       },
     );
@@ -193,6 +197,55 @@ class AppDatabase {
         'ALTER TABLE sessions ADD COLUMN current_page INTEGER NOT NULL DEFAULT 0',
       );
     }
+  }
+
+  /// Fase 3.2+: perfil, avaliações corporais e campos extras de cardio.
+  static Future<void> _upgradeToV4(Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS user_profile (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        sex TEXT NOT NULL,
+        birth_date INTEGER NOT NULL,
+        height_cm REAL NOT NULL,
+        current_weight_kg REAL NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS body_assessments (
+        id TEXT PRIMARY KEY,
+        date INTEGER NOT NULL,
+        weight_kg REAL NOT NULL,
+        neck_cm REAL,
+        waist_cm REAL,
+        hip_cm REAL,
+        bmi REAL,
+        body_fat_percent REAL,
+        fat_mass_kg REAL,
+        lean_mass_kg REAL,
+        bmr_kcal REAL,
+        body_fat_method TEXT,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+    await database.execute(
+      'CREATE INDEX IF NOT EXISTS idx_body_assessments_date '
+      'ON body_assessments(date DESC)',
+    );
+
+    final cardioInfo = await database.rawQuery('PRAGMA table_info(cardio)');
+    final cardioCols = cardioInfo.map((r) => r['name'] as String).toSet();
+    Future<void> addCol(String name, String def) async {
+      if (!cardioCols.contains(name)) {
+        await database.execute('ALTER TABLE cardio ADD COLUMN $name $def');
+      }
+    }
+
+    await addCol('speed_kmh', 'REAL');
+    await addCol('incline_percent', 'REAL');
+    await addCol('floors', 'INTEGER');
+    await addCol('calories_kcal', 'REAL');
   }
 
   Future<void> close() => _db.close();

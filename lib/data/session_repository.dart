@@ -141,6 +141,10 @@ class SessionRepository {
             'type': cardio.type.name,
             'duration_minutes': cardio.durationMinutes,
             'distance_km': cardio.distanceKm,
+            'speed_kmh': cardio.speedKmh,
+            'incline_percent': cardio.inclinePercent,
+            'floors': cardio.floors,
+            'calories_kcal': cardio.caloriesKcal,
             'note': cardio.note,
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -390,7 +394,37 @@ class SessionRepository {
       type: CardioType.fromName(r['type'] as String?),
       durationMinutes: r['duration_minutes'] as int,
       distanceKm: (r['distance_km'] as num?)?.toDouble(),
+      speedKmh: (r['speed_kmh'] as num?)?.toDouble(),
+      inclinePercent: (r['incline_percent'] as num?)?.toDouble(),
+      floors: r['floors'] as int?,
+      caloriesKcal: (r['calories_kcal'] as num?)?.toDouble(),
       note: r['note'] as String?,
     );
+  }
+
+  /// Maior carga de trabalho por exercício em sessões **concluídas**
+  /// (exclui [excludeSessionId]). Usado para detectar PR no resumo.
+  Future<Map<String, double>> maxWorkWeightByExercise({
+    String? excludeSessionId,
+  }) async {
+    final rows = await _db.rawQuery(
+      '''
+      SELECT s.exercise_id, MAX(s.weight_kg) AS max_w
+      FROM sets s
+      JOIN sessions se ON se.id = s.session_id
+      WHERE s.stage = 'trabalho'
+        AND se.ended_at IS NOT NULL
+        ${excludeSessionId != null ? 'AND se.id != ?' : ''}
+      GROUP BY s.exercise_id
+      ''',
+      excludeSessionId != null ? [excludeSessionId] : null,
+    );
+    final map = <String, double>{};
+    for (final r in rows) {
+      final id = r['exercise_id'] as String?;
+      final w = (r['max_w'] as num?)?.toDouble();
+      if (id != null && w != null) map[id] = w;
+    }
+    return map;
   }
 }

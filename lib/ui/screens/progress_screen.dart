@@ -5,10 +5,12 @@ import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/session_repository.dart';
 import '../../state/providers.dart';
+import '../app_frame.dart';
 import '../widgets/nexus_card.dart';
+import 'body_evolution_screen.dart';
 
-/// Visão de progressão: volume recente, PRs e últimos treinos.
-/// Dados reais do histórico — sem mock.
+/// Visão de progressão: frequência, duração, volume e últimos treinos.
+/// Dados reais do histórico — sem mock. (Fase 3.13 base)
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
 
@@ -24,6 +26,15 @@ class ProgressScreen extends ConsumerWidget {
       totalSets += s.session.totalSets;
       totalMinutes += s.session.durationMinutes;
     }
+    final avgMin = summaries.isEmpty
+        ? 0
+        : (totalMinutes / summaries.length).round();
+
+    // Frequência: treinos nos últimos 7 dias.
+    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+    final weekCount = summaries
+        .where((s) => s.session.startedAt.isAfter(weekAgo))
+        .length;
 
     return Scaffold(
       body: SafeArea(
@@ -37,7 +48,7 @@ class ProgressScreen extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.fromLTRB(24, 0, 24, 14),
               child: Text(
-                'Visão simples do que você já registrou',
+                'Frequência, duração e volume com dados reais',
                 style: AppText.bodyDim,
               ),
             ),
@@ -57,6 +68,26 @@ class ProgressScreen extends ConsumerWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _StatCard(
+                          label: '7 DIAS',
+                          value: '$weekCount',
+                          icon: Icons.calendar_today_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'MÉDIA',
+                          value: '${avgMin}m',
+                          icon: Icons.timer_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
                           label: 'SÉRIES',
                           value: '$totalSets',
                           icon: Icons.replay_rounded,
@@ -65,15 +96,41 @@ class ProgressScreen extends ConsumerWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _StatCard(
-                          label: 'MIN',
+                          label: 'TEMPO',
                           value: '$totalMinutes',
-                          icon: Icons.timer_outlined,
+                          icon: Icons.schedule_rounded,
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  NexusCard(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const AppFrame(child: BodyEvolutionScreen()),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.monitor_weight_outlined,
+                            color: C.accentSecondary),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Evolução corporal (peso, BF, medidas)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded, color: C.textFaint),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 22),
-                  const Text('VOLUME RECENTE', style: AppText.label),
+                  const Text('FREQUÊNCIA RECENTE', style: AppText.label),
                   const SizedBox(height: 12),
                   NexusCard(
                     padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
@@ -130,7 +187,8 @@ class ProgressScreen extends ConsumerWidget {
                                     Text(
                                       '${formatDateShort(s.session.startedAt)} · '
                                       '${formatDuration(s.session.durationMinutes)} · '
-                                      '${s.session.totalSets} séries',
+                                      '${s.session.totalSets} séries'
+                                      '${s.cardio != null ? ' · cardio' : ''}',
                                       style: AppText.bodyFaint,
                                     ),
                                   ],

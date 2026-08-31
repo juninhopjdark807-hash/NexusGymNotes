@@ -2,12 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
 import '../data/exercise_repository.dart';
+import '../data/profile_repository.dart';
 import '../data/session_repository.dart';
 import '../data/template_repository.dart';
 import '../domain/logic/progression.dart';
+import '../domain/models/body_assessment.dart';
 import '../domain/models/cardio_record.dart';
 import '../domain/models/exercise.dart';
 import '../domain/models/set_record.dart';
+import '../domain/models/user_profile.dart';
 import '../domain/models/workout_session.dart';
 import '../domain/models/workout_template.dart';
 import 'active_workout.dart';
@@ -26,6 +29,10 @@ final templateRepositoryProvider = Provider<TemplateRepository>(
 
 final sessionRepositoryProvider = Provider<SessionRepository>(
   (ref) => SessionRepository.shared,
+);
+
+final profileRepositoryProvider = Provider<ProfileRepository>(
+  (ref) => ProfileRepository.shared,
 );
 
 /// Aba ativa da navegação inferior (0 = Treinos, 1 = Histórico).
@@ -165,4 +172,20 @@ final exerciseNoteProvider = StreamProvider.family<String?, String>((ref, key) {
   return repo.changes
       .asyncMap((_) => repo.noteForExercise(sessionId, exerciseId))
       .handleError((Object e) => null);
+});
+
+// ---------------------------------------------------------- perfil / corpo
+
+final userProfileProvider = StreamProvider<UserProfile?>((ref) {
+  final repo = ref.watch(profileRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.getProfile())
+      .handleError((Object e) => null);
+});
+
+final bodyAssessmentsProvider = StreamProvider<List<BodyAssessment>>((ref) {
+  final repo = ref.watch(profileRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.getAssessments())
+      .handleError((Object e) => const <BodyAssessment>[]);
 });
