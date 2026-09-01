@@ -105,6 +105,18 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     return result;
   }
 
+  /// Cancela a seleção desta sessão: desfaz TODAS as adições feitas nesta
+  /// folha (via onRemoved) antes de fechar — mesmo com itens marcados.
+  void _cancel() {
+    final added = _sessionAdded.toList(growable: false);
+    _sessionAdded.clear();
+    _selected.removeAll(added);
+    for (final id in added) {
+      widget.onRemoved?.call(id);
+    }
+    Navigator.of(context).pop();
+  }
+
   /// Seleciona/desseleciona: 1º toque adiciona (check verde, folha aberta);
   /// 2º toque remove do treino e volta o "Mais". Sempre sem fechar a folha.
   void _toggle(Exercise exercise) {
@@ -221,7 +233,9 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                       color: Colors.transparent,
                       child: InkWell(
                         customBorder: const CircleBorder(),
-                        onTap: () => Navigator.of(context).pop(),
+                        // "X" cancela: desfaz os exercícios adicionados nesta
+                        // sessão e fecha (sem gravar nada novo).
+                        onTap: _cancel,
                         child: const Padding(
                           padding: EdgeInsets.all(4),
                           child: Icon(

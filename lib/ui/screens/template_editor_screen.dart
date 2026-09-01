@@ -120,6 +120,10 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: C.surface,
+      // Saídas explícitas apenas: "X" cancela, "Concluir" confirma.
+      // Sem fechar por toque fora/arrastar (evita confirmação acidental).
+      isDismissible: false,
+      enableDrag: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
