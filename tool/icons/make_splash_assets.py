@@ -8,8 +8,8 @@ O asset � tratado como fonte EXATA — nada � redesenhado, apenas redimensio
 (LANCZOS) para os tamanhos exigidos pelas plataformas:
 
 - Android (splash pr�-Android 12): drawable-{mdpi..xxxhdpi}/splash_icon.png
-  (200dp : 200/300/400/600/800 px)
-- iOS: Assets.xcassets/LaunchImage.imageset (200pt : 200/400/600 px)
+  (280dp : 280/420/560/840/1120 px)
+- iOS: Assets.xcassets/LaunchImage.imageset (280pt : 280/560/840 px)
 
 Nenhum arquivo original � alterado.
 """
@@ -21,17 +21,17 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# 240dp de tamanho visual da marca na splash (presença forte, sem ocupar a
+# 280dp de tamanho visual da marca na splash (presença forte, sem ocupar a
 # tela inteira; o Android 12+ não usa esta camada — ver "splash_placeholder").
-ANDROID_DP = 240
+ANDROID_DP = 280
 ANDROID = {
-    "mdpi": ANDROID_DP,      # 240 px
-    "hdpi": ANDROID_DP * 3 // 2,    # 360 px
-    "xhdpi": ANDROID_DP * 2,        # 480 px
-    "xxhdpi": ANDROID_DP * 3,       # 720 px
-    "xxxhdpi": ANDROID_DP * 4,      # 960 px
+    "mdpi": ANDROID_DP,      # 280 px
+    "hdpi": ANDROID_DP * 3 // 2,    # 420 px
+    "xhdpi": ANDROID_DP * 2,        # 560 px
+    "xxhdpi": ANDROID_DP * 3,       # 840 px
+    "xxxhdpi": ANDROID_DP * 4,      # 1120 px
 }
-IOS = {"LaunchImage.png": 240, "LaunchImage@2x.png": 480, "LaunchImage@3x.png": 720}
+IOS = {"LaunchImage.png": 280, "LaunchImage@2x.png": 560, "LaunchImage@3x.png": 840}
 
 
 def main():

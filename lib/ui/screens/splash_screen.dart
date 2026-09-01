@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
@@ -17,8 +19,12 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    // ~65% da largura (com limites), presença forte sem ocupar a tela toda.
-    final iconSize = (size.width * 0.65).clamp(200.0, 260.0);
+    // Presença visual forte: ~78% do menor lado (com limites) — o logo fica
+    // GRANDE e emoldurado pela tela inteira, sem padding excessivo. O asset
+    // é quadrado e quase sem margens internas, então toda a arte aparece.
+    final iconSize = (math.min(size.width, size.height) * 0.78)
+        .clamp(240.0, 340.0)
+        .toDouble();
 
     return Scaffold(
       backgroundColor: _bg,
@@ -28,15 +34,16 @@ class SplashScreen extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               // Iluminação roxa discreta atrás da marca (identidade do ícone).
+              // Sutil o bastante para não "encolher" visualmente o logo.
               IgnorePointer(
                 child: Container(
-                  width: iconSize * 1.65,
-                  height: iconSize * 1.65,
+                  width: iconSize * 1.55,
+                  height: iconSize * 1.55,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        C.accent.withValues(alpha: 0.12),
+                        C.accent.withValues(alpha: 0.10),
                         C.accent.withValues(alpha: 0.0),
                       ],
                       stops: const [0.0, 1.0],
