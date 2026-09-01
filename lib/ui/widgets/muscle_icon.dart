@@ -182,14 +182,14 @@ class _MuscleSilhouettePainter extends CustomPainter {
 
     // Marcas peitorais (pontos suaves via mini arcos).
     c.drawArc(
-      const Rect.fromCenter(center: Offset(9.2, 12.8), width: 2.2, height: 2.2),
+      Rect.fromCenter(center: const Offset(9.2, 12.8), width: 2.2, height: 2.2),
       0.4,
       math.pi * 1.2,
       false,
       s,
     );
     c.drawArc(
-      const Rect.fromCenter(center: Offset(14.8, 12.8), width: 2.2, height: 2.2),
+      Rect.fromCenter(center: const Offset(14.8, 12.8), width: 2.2, height: 2.2),
       0.4,
       math.pi * 1.2,
       false,
