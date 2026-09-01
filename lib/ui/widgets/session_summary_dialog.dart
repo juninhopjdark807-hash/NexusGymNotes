@@ -28,7 +28,6 @@ Future<void> showSessionSummaryDialog(
   List<SetRecord> sets = const [];
   CardioRecord? cardio;
   Map<String, Exercise> exerciseById = const {};
-  Map<String, double> prevMax = const {};
 
   try {
     session = await sessions.getById(sessionId);
@@ -37,8 +36,6 @@ Future<void> showSessionSummaryDialog(
     cardio = await sessions.cardioForSession(sessionId);
     final exercises = await exercisesRepo.getAll();
     exerciseById = {for (final e in exercises) e.id: e};
-    prevMax =
-        await sessions.maxWorkWeightByExercise(excludeSessionId: sessionId);
   } catch (_) {
     // Se falhar a carga, ainda tenta não travar o app.
     return;
@@ -58,7 +55,6 @@ Future<void> showSessionSummaryDialog(
       sets: sets,
       cardio: cardio,
       exerciseById: exerciseById,
-      previousMaxByExercise: prevMax,
       onClose: () {
         // Fecha só o dialog; a rota de treino já deve ter sido removida.
         Navigator.of(ctx).pop();
@@ -104,7 +100,6 @@ class _SessionSummaryDialog extends StatelessWidget {
     required this.sets,
     required this.cardio,
     required this.exerciseById,
-    required this.previousMaxByExercise,
     required this.onClose,
   });
 
@@ -112,7 +107,6 @@ class _SessionSummaryDialog extends StatelessWidget {
   final List<SetRecord> sets;
   final CardioRecord? cardio;
   final Map<String, Exercise> exerciseById;
-  final Map<String, double> previousMaxByExercise;
   final VoidCallback onClose;
 
   @override
@@ -120,7 +114,7 @@ class _SessionSummaryDialog extends StatelessWidget {
     final stats = SessionStats.build(
       session: session,
       sets: sets,
-      previousMaxByExercise: previousMaxByExercise,
+      previousMaxByExercise: const {},
       exerciseById: exerciseById,
     );
 
@@ -196,31 +190,6 @@ class _SessionSummaryDialog extends StatelessWidget {
                       const SizedBox(height: 8),
                       _CardioBlock(cardio: cardio!),
                     ],
-                    if (_hasHighlights(stats.highlights)) ...[
-                      const SizedBox(height: 16),
-                      const Text('DESTAQUES', style: AppText.label),
-                      const SizedBox(height: 8),
-                      if (stats.highlights.newPr != null)
-                        _HighlightCard(
-                          title: 'NOVO RECORDE',
-                          accent: true,
-                          body: stats.highlights.newPr!.exerciseName,
-                          detail:
-                              '${formatKg(stats.highlights.newPr!.weightKg)} kg × ${stats.highlights.newPr!.reps.toInt()}',
-                        ),
-                      if (stats.highlights.highestVolumeExerciseName != null &&
-                          stats.highlights.highestVolumeKg != null) ...[
-                        if (stats.highlights.newPr != null)
-                          const SizedBox(height: 8),
-                        _HighlightCard(
-                          title: 'MAIOR VOLUME',
-                          accent: false,
-                          body: stats.highlights.highestVolumeExerciseName!,
-                          detail:
-                              '${formatKg(stats.highlights.highestVolumeKg!)} kg',
-                        ),
-                      ],
-                    ],
                   ],
                 ),
               ),
@@ -237,10 +206,6 @@ class _SessionSummaryDialog extends StatelessWidget {
       ),
     );
   }
-
-  bool _hasHighlights(SessionHighlights h) =>
-      h.newPr != null ||
-      (h.highestVolumeExerciseName != null && h.highestVolumeKg != null);
 }
 
 class _StatBlock extends StatelessWidget {
@@ -351,59 +316,6 @@ class _CardioBlock extends StatelessWidget {
                 ],
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HighlightCard extends StatelessWidget {
-  const _HighlightCard({
-    required this.title,
-    required this.body,
-    required this.detail,
-    required this.accent,
-  });
-
-  final String title;
-  final String body;
-  final String detail;
-  final bool accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: accent ? C.accentSoft : C.surface2,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: accent ? C.accent.withValues(alpha: 0.4) : C.strokeSoft,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: accent ? AppText.labelAccent : AppText.label,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            detail,
-            style: TextStyle(
-              fontFamily: AppFonts.display,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: accent ? C.accentSecondary : C.text,
-            ),
-          ),
         ],
       ),
     );
