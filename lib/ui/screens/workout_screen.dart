@@ -149,28 +149,27 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     );
     if (confirmed != true || !mounted) return;
     final sessionId = ref.read(activeWorkoutProvider)?.sessionId;
-    await ref.read(activeWorkoutProvider.notifier).finish();
-    if (!mounted) return;
-    Navigator.of(context).pop();
-    // Resumo completo da sessão (sem cardio, se encerrou antes).
-    if (sessionId != null) {
-      await showSessionSummaryDialog(
-        context,
-        sessionId: sessionId,
-        ref: ref,
-      );
-    }
+    if (sessionId == null) return;
+    // Evita tela preta: finish + pop + dialog no root navigator.
+    await finishWorkoutAndShowSummary(
+      context,
+      sessionId: sessionId,
+      finishSession: () => ref.read(activeWorkoutProvider.notifier).finish(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final workout = ref.watch(activeWorkoutProvider);
     if (workout == null) {
-      // Encerrado por fora: volta à tela anterior.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).pop();
-      });
-      return const Scaffold(body: SizedBox.shrink());
+      // Estado limpo após finish — a navegação/resumo é feita pelo
+      // fluxo de finalização (finishWorkoutAndShowSummary). Não dar
+      // pop automático aqui (causava tela preta + dialog perdido).
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(strokeWidth: 2, color: C.textFaint),
+        ),
+      );
     }
 
     // Garante sincronia PageView ↔ estado (ex.: após rebuild).

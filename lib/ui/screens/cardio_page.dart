@@ -87,11 +87,14 @@ class _CardioPageState extends ConsumerState<CardioPage> {
       );
     }
     final sessionId = workout.sessionId;
-    await ref.read(activeWorkoutProvider.notifier).finish(cardio: cardio);
-    if (!mounted) return;
-    // Fecha a tela de treino e mostra o resumo único da sessão.
-    Navigator.of(context).pop();
-    await showSessionSummaryDialog(context, sessionId: sessionId, ref: ref);
+    // Captura navigator antes do finish desmontar o WorkoutScreen.
+    final rootContext = context;
+    await finishWorkoutAndShowSummary(
+      rootContext,
+      sessionId: sessionId,
+      finishSession: () =>
+          ref.read(activeWorkoutProvider.notifier).finish(cardio: cardio),
+    );
   }
 
   @override

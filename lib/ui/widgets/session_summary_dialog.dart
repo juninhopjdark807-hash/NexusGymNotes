@@ -1,55 +1,101 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
 import '../../core/theme.dart';
+import '../../data/exercise_repository.dart';
+import '../../data/session_repository.dart';
 import '../../domain/logic/session_stats.dart';
 import '../../domain/models/cardio_record.dart';
 import '../../domain/models/exercise.dart';
 import '../../domain/models/set_record.dart';
 import '../../domain/models/workout_session.dart';
-import '../../state/providers.dart';
 import 'app_button.dart';
 
-/// Exibe o resumo completo da sessão em um único modal e, ao fechar,
-/// volta ao fluxo normal (home).
+/// Exibe o resumo completo da sessão em um único modal.
 ///
 /// A sessão já deve estar **concluída** no banco antes da chamada.
+/// Usa o root navigator e repositórios singleton (não depende de
+/// [WidgetRef] nem do context da tela de treino, que pode ter sido
+/// desmontada no finish).
 Future<void> showSessionSummaryDialog(
   BuildContext context, {
   required String sessionId,
-  required WidgetRef ref,
 }) async {
-  // Carrega dados reais da sessão concluída.
-  final repo = ref.read(sessionRepositoryProvider);
-  final session = await repo.getById(sessionId);
-  if (session == null || !context.mounted) return;
+  final sessions = SessionRepository.shared;
+  final exercisesRepo = ExerciseRepository.shared;
 
-  final sets = await repo.setsForSession(sessionId);
-  final cardio = await repo.cardioForSession(sessionId);
-  final exercises = await ref.read(exerciseRepositoryProvider).getAll();
-  final exerciseById = {for (final e in exercises) e.id: e};
-  final prevMax =
-      await repo.maxWorkWeightByExercise(excludeSessionId: sessionId);
+  WorkoutSession? session;
+  List<SetRecord> sets = const [];
+  CardioRecord? cardio;
+  Map<String, Exercise> exerciseById = const {};
+  Map<String, double> prevMax = const {};
 
-  if (!context.mounted) return;
+  try {
+    session = await sessions.getById(sessionId);
+    if (session == null) return;
+    sets = await sessions.setsForSession(sessionId);
+    cardio = await sessions.cardioForSession(sessionId);
+    final exercises = await exercisesRepo.getAll();
+    exerciseById = {for (final e in exercises) e.id: e};
+    prevMax =
+        await sessions.maxWorkWeightByExercise(excludeSessionId: sessionId);
+  } catch (_) {
+    // Se falhar a carga, ainda tenta não travar o app.
+    return;
+  }
+
+  // Garante um context válido do root navigator (overlay do app).
+  final navigator = Navigator.maybeOf(context, rootNavigator: true);
+  final dialogContext = navigator?.context ?? context;
+  if (!dialogContext.mounted) return;
 
   await showDialog<void>(
-    context: context,
+    context: dialogContext,
+    useRootNavigator: true,
     barrierDismissible: false,
     builder: (ctx) => _SessionSummaryDialog(
-      session: session,
+      session: session!,
       sets: sets,
       cardio: cardio,
       exerciseById: exerciseById,
       previousMaxByExercise: prevMax,
       onClose: () {
+        // Fecha só o dialog; a rota de treino já deve ter sido removida.
         Navigator.of(ctx).pop();
-        // Volta ao shell principal (treinos).
-        Navigator.of(context).popUntil((r) => r.isFirst);
       },
     ),
   );
+}
+
+/// Finaliza a navegação do treino e mostra o resumo com segurança.
+///
+/// Ordem crítica:
+/// 1. captura o root navigator
+/// 2. remove a rota do treino
+/// 3. abre o dialog no root (não depende da tela desmontada)
+Future<void> finishWorkoutAndShowSummary(
+  BuildContext context, {
+  required Future<void> Function() finishSession,
+  required String sessionId,
+}) async {
+  final rootNav = Navigator.of(context, rootNavigator: true);
+
+  // Encerra no banco / limpa estado ativo.
+  await finishSession();
+
+  // Remove a tela de treino (e qualquer rota acima dela no mesmo stack).
+  // popUntil home — a home fica sob o dialog depois.
+  if (rootNav.canPop()) {
+    rootNav.popUntil((route) => route.isFirst);
+  }
+
+  // Próximo frame: overlay está estável na home.
+  await Future<void>.delayed(Duration.zero);
+
+  final overlayContext = rootNav.context;
+  if (!overlayContext.mounted) return;
+
+  await showSessionSummaryDialog(overlayContext, sessionId: sessionId);
 }
 
 class _SessionSummaryDialog extends StatelessWidget {
