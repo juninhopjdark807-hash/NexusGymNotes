@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: o sistema SEMPRE mascara o ícone da splash em um círculo,
+     o que cortaria a arte (parte inferior do logo "icone"). Por isso o
+     sistema exibe apenas o fundo escuro; o logo completo, grande e sem
+     máscara é renderizado pelo próprio app (lib/ui/screens/splash_screen.dart).
+     Este é apenas um placeholder transparente — não é imagem/asset. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

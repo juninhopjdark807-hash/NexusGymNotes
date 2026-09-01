@@ -51,8 +51,10 @@ class WorkoutExercise {
     required this.id,
     required this.exerciseId,
     this.position = 0,
-    this.warmupEnabled = true,
-    this.prepEnabled = true,
+    // Desligado por padrão: AQ/PR costumam valer só no 1º exercício.
+    // O editor liga automaticamente no primeiro item adicionado.
+    this.warmupEnabled = false,
+    this.prepEnabled = false,
   });
 
   /// Identificador da entrada (estável para reordenação/sincronização).

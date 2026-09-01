@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fundo da splash (mesma identidade dark do app) -->
+    <color name="splash_background">#0B0B0D</color>
+    <!-- Fundo atrás da UI do Flutter (C.bg) -->
+    <color name="app_background">#0D0D0F</color>
+</resources>

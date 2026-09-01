@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../domain/models/exercise.dart';
-import '../../domain/models/workout_template.dart';
 import '../../state/providers.dart';
 import '../app_frame.dart';
 import '../widgets/app_button.dart';
@@ -20,10 +19,38 @@ class TemplateScreen extends ConsumerWidget {
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     final template = ref.read(templateProvider(templateId)).valueOrNull;
     if (template == null) return;
-    final started = await ref.read(activeWorkoutProvider.notifier).start(template);
+    final started =
+        await ref.read(activeWorkoutProvider.notifier).start(template);
     if (started && context.mounted) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AppFrame(child: WorkoutScreen())),
+        MaterialPageRoute(
+          builder: (_) => const AppFrame(child: WorkoutScreen()),
+        ),
+      );
+    }
+  }
+
+  Future<void> _resume(BuildContext context, WidgetRef ref) async {
+    final active = ref.read(activeWorkoutProvider);
+    if (active != null) {
+      if (context.mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const AppFrame(child: WorkoutScreen()),
+          ),
+        );
+      }
+      return;
+    }
+    final session = ref.read(activeSessionProvider).valueOrNull;
+    if (session == null) return;
+    final ok =
+        await ref.read(activeWorkoutProvider.notifier).resume(session.id);
+    if (ok && context.mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const AppFrame(child: WorkoutScreen()),
+        ),
       );
     }
   }
@@ -33,19 +60,46 @@ class TemplateScreen extends ConsumerWidget {
     final template = ref.watch(templateProvider(templateId)).valueOrNull;
     if (template == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(strokeWidth: 2, color: C.textFaint)),
+        body: Center(
+          child: CircularProgressIndicator(strokeWidth: 2, color: C.textFaint),
+        ),
       );
     }
-    final exercises = ref.watch(exercisesProvider).valueOrNull ?? const <Exercise>[];
+    final exercises =
+        ref.watch(exercisesProvider).valueOrNull ?? const <Exercise>[];
     final exerciseById = {for (final e in exercises) e.id: e};
+    final activeMem = ref.watch(activeWorkoutProvider);
+    final activeDb = ref.watch(activeSessionProvider).valueOrNull;
+    final inProgress = activeMem != null ||
+        (activeDb != null && activeDb.templateId == templateId);
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 24, 0),
+              child: Row(
+                children: [
+                  AppBackButton(onPressed: () => Navigator.of(context).pop()),
+                  const SizedBox(width: 6),
+                  const Expanded(
+                    child: Text(
+                      'TREINO',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.6,
+                        color: C.textFaint,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                 children: [
                   Text(
                     template.name.toUpperCase(),
@@ -93,21 +147,31 @@ class TemplateScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   AppButton(
-                    label: 'Iniciar treino',
-                    icon: Icons.play_arrow_rounded,
-                    onPressed:
-                        template.exercises.isEmpty ? null : () => _start(context, ref),
+                    label: inProgress ? 'Voltar ao treino' : 'Iniciar treino',
+                    icon: inProgress
+                        ? Icons.play_circle_outline_rounded
+                        : Icons.play_arrow_rounded,
+                    onPressed: template.exercises.isEmpty
+                        ? null
+                        : () => inProgress
+                            ? _resume(context, ref)
+                            : _start(context, ref),
                   ),
                   const SizedBox(height: 10),
                   AppButton(
                     label: 'Editar treino',
                     variant: AppButtonVariant.ghost,
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AppFrame(child: TemplateEditorScreen(templateId: templateId)),
-                      ),
-                    ),
+                    onPressed: inProgress
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AppFrame(
+                                  child: TemplateEditorScreen(
+                                    templateId: templateId,
+                                  ),
+                                ),
+                              ),
+                            ),
                   ),
                 ],
               ),
@@ -115,8 +179,6 @@ class TemplateScreen extends ConsumerWidget {
           ],
         ),
       ),
-      // Voltar para a lista de treinos
-      // (o "back" do sistema já faz isso)
     );
   }
 }
@@ -188,41 +250,57 @@ class _SequenceRow extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (warmup)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: C.accentSoft,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: const Text(
-                        'AQ',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                          color: C.accent,
+                  if (warmup || prep) ...[
+                    if (warmup)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ),
-                    ),
-                  if (prep)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: C.accentSoft,
                           borderRadius: BorderRadius.circular(7),
                         ),
                         child: const Text(
-                          'PR',
+                          'AQ',
                           style: TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.8,
-                            color: C.accent,
+                            color: C.accentSecondary,
                           ),
                         ),
+                      ),
+                    if (prep)
+                      Padding(
+                        padding: EdgeInsets.only(left: warmup ? 6 : 0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: C.accentSoft,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: const Text(
+                            'PR',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: C.accentSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ] else
+                    const Text(
+                      'só trabalho',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: C.textFaint,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                 ],

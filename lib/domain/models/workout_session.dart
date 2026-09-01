@@ -13,6 +13,7 @@ class WorkoutSession {
     this.assignedBy,
     this.exerciseCount = 0,
     this.totalSets = 0,
+    this.currentPage = 0,
   });
 
   final String id;
@@ -36,6 +37,10 @@ class WorkoutSession {
 
   /// Total de séries registradas (todas as etapas).
   final int totalSets;
+
+  /// Página atual na execução (0..n-1 exercícios, n = cardio).
+  /// Persistido para "Voltar ao treino" retomar o ponto certo.
+  final int currentPage;
 
   bool get isCompleted => endedAt != null;
 

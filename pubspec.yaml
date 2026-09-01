@@ -4,6 +4,7 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
+  # Compatível com Dart 3.13.2 / Flutter 3.47.2 (stable do ambiente de destino).
   sdk: ">=3.7.0 <4.0.0"
 
 dependencies:
@@ -11,9 +12,11 @@ dependencies:
     sdk: flutter
   # Estado da aplicação (separado da interface e da persistência)
   flutter_riverpod: ^2.6.1
-  # Persistência local (SQLite), offline, sem servidor
+  # Persistência local (SQLite), offline, sem servidor.
+  # path + getDatabasesPath (sqflite) — sem path_provider, para evitar
+  # o pacote transitivo objective_c (build hook quebra no Windows com
+  # espaço no caminho do usuário, ex.: C:\Users\Paulo Jr\).
   path: ^1.9.0
-  path_provider: ^2.1.4
   sqflite: ^2.4.1
   # Identificadores únicos (prontos para futura sincronização)
   uuid: ^4.5.1
@@ -25,6 +28,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    # Marca visual do header da tela inicial (não é o ícone do launcher).
+    - iconeinicio.png
+    # Logo completo exibido na splash (mesmo asset nativo, sem modificação).
+    - icone
 
   fonts:
     - family: Inter
