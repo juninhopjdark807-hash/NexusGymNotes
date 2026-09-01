@@ -5,6 +5,9 @@ import '../../core/theme.dart';
 enum AppButtonVariant { primary, ghost, danger }
 
 /// Botão grande, com alvo de toque amplo — pensado para uso durante o treino.
+///
+/// O rótulo pode ser longo (ex.: "Próximo: Supino inclinado") e é truncado
+/// com reticências em vez de gerar overflow horizontal.
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,
@@ -14,6 +17,7 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.expanded = true,
     this.height = 60,
+    this.iconAtEnd = false,
   });
 
   final String label;
@@ -23,6 +27,9 @@ class AppButton extends StatelessWidget {
   final bool expanded;
   final double height;
 
+  /// Se true, o ícone fica à direita do texto (ex.: seta "próximo").
+  final bool iconAtEnd;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
@@ -31,6 +38,11 @@ class AppButton extends StatelessWidget {
       AppButtonVariant.ghost => (C.surface2, C.text),
       AppButtonVariant.danger => (C.dangerSoft, C.danger),
     };
+
+    final iconWidget = icon == null
+        ? null
+        : Icon(icon, size: 18, color: fg);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -44,7 +56,7 @@ class AppButton extends StatelessWidget {
             curve: Curves.easeOut,
             height: height,
             width: expanded ? double.infinity : null,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.circular(18),
@@ -61,21 +73,33 @@ class AppButton extends StatelessWidget {
                     ]
                   : null,
             ),
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 18, color: fg),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    label.toUpperCase(),
-                    style: AppText.button.copyWith(color: fg),
-                  ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (iconWidget != null && !iconAtEnd) ...[
+                  iconWidget,
+                  const SizedBox(width: 8),
                 ],
-              ),
+                Flexible(
+                  child: Text(
+                    label.toUpperCase(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: AppText.button.copyWith(
+                      color: fg,
+                      // letterSpacing alto estoura nomes longos em telas estreitas
+                      letterSpacing: label.length > 22 ? 0.6 : 1.2,
+                      height: 1.15,
+                      fontSize: label.length > 28 ? 12.5 : 14,
+                    ),
+                  ),
+                ),
+                if (iconWidget != null && iconAtEnd) ...[
+                  const SizedBox(width: 6),
+                  iconWidget,
+                ],
+              ],
             ),
           ),
         ),

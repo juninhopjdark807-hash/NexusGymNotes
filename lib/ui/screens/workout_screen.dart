@@ -395,7 +395,7 @@ class _WorkoutFooter extends ConsumerWidget {
             onTap: item == null ? null : () => _openNote(context, ref),
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              width: 56,
+              width: 52,
               height: 56,
               decoration: BoxDecoration(
                 color: C.surface2,
@@ -416,11 +416,12 @@ class _WorkoutFooter extends ConsumerWidget {
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: AppButton(
             label: nextLabel,
             icon: Icons.chevron_right_rounded,
+            iconAtEnd: true,
             height: 56,
             onPressed: onPressed,
           ),
@@ -479,24 +480,21 @@ class _WorkoutHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 10, 12, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
       child: Row(
         children: [
           if (canGoBack)
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: onBack,
-                  child: const Padding(
-                    padding: EdgeInsets.all(6),
-                    child: Icon(
-                      Icons.chevron_left_rounded,
-                      color: C.textDim,
-                      size: 28,
-                    ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onBack,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.chevron_left_rounded,
+                    color: C.textDim,
+                    size: 28,
                   ),
                 ),
               ),
@@ -507,10 +505,11 @@ class _WorkoutHeader extends StatelessWidget {
               children: [
                 Text(
                   name.toUpperCase(),
+                  maxLines: 1,
                   style: const TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
+                    letterSpacing: 1.4,
                     color: C.textFaint,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -518,6 +517,8 @@ class _WorkoutHeader extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   atCardio ? 'CARDIO' : 'EXERCÍCIO $pageLabel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: AppFonts.display,
                     fontSize: 15,
@@ -528,24 +529,29 @@ class _WorkoutHeader extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 6),
           Text(
             formatElapsed(elapsed),
             style: const TextStyle(
               fontFamily: AppFonts.display,
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: C.textDim,
             ),
           ),
-          const SizedBox(width: 8),
           TextButton(
             onPressed: onEnd,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
             child: const Text(
               'ENCERRAR',
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: 11,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
+                letterSpacing: 0.8,
                 color: C.textDim,
               ),
             ),
