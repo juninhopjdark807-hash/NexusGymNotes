@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-"""Generate launcher icon assets from tool/icons/app_icon_nexus_gen.png.
+"""Generate launcher icon assets from an EXACT source image.
 
-Aplica o mesmo ícone em Android (mipmap-*), iOS (AppIcon.appiconset) e Web,
-e gera um preview com as máscaras reais do sistema (Android circular,
-iOS cantos arredondados).
+Uso:
+  python make_app_icons.py [caminho/da/imagem.png]
+
+Se nenhum caminho for passado, usa tool/icons/app_icon_nexus_gen.png
+(placeholder). Com o arquivo original, aplica EXATAMENTE ele em todas as
+plataformas, sem regenerar nem redesenhar nada.
+
+- Android: mipmap-mdpi..xxxhdpi/ic_launcher.png (48-192px)
+- iOS: AppIcon.appiconset (todos os tamanhos 20-1024px)
+- Web: favicon + Icon-192/512 + maskable
 """
 import json
 import os
@@ -12,15 +19,17 @@ from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
-SRC = os.path.join(HERE, "app_icon_nexus_gen.png")
+DEFAULT_SRC = os.path.join(HERE, "app_icon_nexus_gen.png")
 PREVIEW = os.path.join(HERE, "app_icon_launcher_preview.png")
 
 
-def load_master(source=SRC, size=1024):
+def load_master(source, size=1024):
+    """Normaliza a imagem (exatamente o arquivo fornecido, sem redesenhar)."""
     im = Image.open(source).convert("RGB")
     if im.size != (size, size):
         im = im.resize((size, size), Image.LANCZOS)
-    im.save(os.path.join(HERE, "app_icon_master.png"))
+    out = os.path.join(HERE, "app_icon_master.png")
+    im.save(out)
     return im
 
 
@@ -104,7 +113,9 @@ def preview(master, out=PREVIEW):
 
 
 def main():
-    master = load_master()
+    source = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SRC
+    print("Fonte:", source)
+    master = load_master(source)
     save_android(master)
     save_ios(master)
     save_web(master)
