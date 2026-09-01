@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../domain/models/exercise.dart';
 
-/// Ícone vetorial monoline de grupo muscular (identidade NexusGym).
-///
-/// Silhuetas fitness minimalistas, legíveis em ~20–24 px, desenhadas
-/// com [CustomPainter]. Mapeamento por [MuscleGroup].
+/// Ícone monoline de grupo muscular — visual alinhado às prévias aprovadas.
 class MuscleIcon extends StatelessWidget {
   const MuscleIcon({
     super.key,
@@ -25,18 +22,18 @@ class MuscleIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? (active ? C.accentSecondary : C.textDim);
+    final c = color ?? (active ? const Color(0xFFE8E4FF) : C.textDim);
     return SizedBox(
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _MuscleSilhouettePainter(group: group, color: c),
+        painter: _MusclePainter(group: group, color: c),
       ),
     );
   }
 }
 
-/// Badge circular roxo com ícone (cards da home / picker).
+/// Badge circular roxo com glow (cards da home).
 class MuscleBadge extends StatelessWidget {
   const MuscleBadge({
     super.key,
@@ -56,17 +53,27 @@ class MuscleBadge extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: active ? C.accentSoft : C.surface2,
+        gradient: active
+            ? RadialGradient(
+                colors: [
+                  const Color(0xFF2A2460),
+                  C.accent.withValues(alpha: 0.22),
+                  const Color(0xFF16122E),
+                ],
+                stops: const [0.0, 0.55, 1.0],
+              )
+            : null,
+        color: active ? null : C.surface2,
         border: Border.all(
-          color: active ? C.accent.withValues(alpha: 0.55) : C.stroke,
-          width: 1.5,
+          color: active ? const Color(0xFF8B7CFF) : C.stroke,
+          width: 1.6,
         ),
         boxShadow: active
             ? [
                 BoxShadow(
-                  color: C.accent.withValues(alpha: 0.22),
-                  blurRadius: 10,
-                  spreadRadius: 0,
+                  color: C.accent.withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  spreadRadius: 0.5,
                 ),
               ]
             : null,
@@ -74,8 +81,8 @@ class MuscleBadge extends StatelessWidget {
       child: Center(
         child: MuscleIcon(
           group: group,
-          // Proporção similar às prévias (~52% do círculo).
-          size: size * 0.55,
+          // Ícone maior no círculo para legibilidade (~62%).
+          size: size * 0.62,
           active: active,
         ),
       ),
@@ -83,455 +90,445 @@ class MuscleBadge extends StatelessWidget {
   }
 }
 
-/// Alias reutilizável.
 typedef WorkoutIcon = MuscleIcon;
 
-// ---------------------------------------------------------------------------
+// =============================================================================
 
-class _MuscleSilhouettePainter extends CustomPainter {
-  _MuscleSilhouettePainter({required this.group, required this.color});
+class _MusclePainter extends CustomPainter {
+  _MusclePainter({required this.group, required this.color});
 
   final MuscleGroup group;
   final Color color;
 
+  late Paint _s;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final stroke = Paint()
+    final side = size.shortestSide;
+    // Padding interno para o stroke não cortar.
+    final pad = side * 0.06;
+    final inner = side - pad * 2;
+    final scale = inner / 100.0;
+    // Stroke em px de tela → compensado pela escala do canvas.
+    final swScreen = (side * 0.08).clamp(1.7, 2.6);
+    _s = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1.5, size.width * 0.085)
+      ..strokeWidth = swScreen / scale
       ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
 
-    final s = size.shortestSide;
     canvas.save();
-    // Canvas lógico 0–24.
-    canvas.scale(s / 24, s / 24);
+    canvas.translate(pad, pad);
+    canvas.scale(scale, scale);
 
     switch (group) {
       case MuscleGroup.peito:
-        _peito(canvas, stroke);
+        _peito(canvas);
       case MuscleGroup.costas:
-        _costas(canvas, stroke);
+        _costas(canvas);
       case MuscleGroup.ombros:
-        _ombros(canvas, stroke);
+        _ombros(canvas);
       case MuscleGroup.biceps:
-        _biceps(canvas, stroke);
+        _biceps(canvas);
       case MuscleGroup.triceps:
-        _triceps(canvas, stroke);
+        _triceps(canvas);
       case MuscleGroup.quadriceps:
       case MuscleGroup.pernas:
-        _pernas(canvas, stroke);
+        _pernas(canvas);
       case MuscleGroup.posteriorCoxa:
-        _posterior(canvas, stroke);
+        _posterior(canvas);
       case MuscleGroup.gluteos:
-        _gluteos(canvas, stroke);
+        _gluteos(canvas);
       case MuscleGroup.panturrilhas:
-        _panturrilha(canvas, stroke);
+        _panturrilha(canvas);
       case MuscleGroup.abdomen:
-        _abdomen(canvas, stroke);
+        _abdomen(canvas);
       case MuscleGroup.lombar:
-        _lombar(canvas, stroke);
+        _lombar(canvas);
       case MuscleGroup.antebraco:
-        _antebraco(canvas, stroke);
+        _antebraco(canvas);
       case MuscleGroup.trapezio:
-        _trapezio(canvas, stroke);
+        _trapezio(canvas);
       case MuscleGroup.pescoco:
-        _pescoco(canvas, stroke);
+        _pescoco(canvas);
       case MuscleGroup.cardio:
-        _cardio(canvas, stroke);
+        _cardio(canvas);
       case MuscleGroup.outros:
-        _fullBody(canvas, stroke);
+        _barbell(canvas);
     }
-
     canvas.restore();
   }
 
-  /// Peito — peitoral frontal monoline (como a prévia).
-  void _peito(Canvas c, Paint s) {
-    // Contorno ombros + peito + tronco.
-    final body = Path()
-      ..moveTo(5.5, 8)
-      ..cubicTo(5.5, 5.5, 8, 4, 10.2, 4.8)
-      ..lineTo(11.2, 7.2)
-      ..lineTo(12.8, 7.2)
-      ..lineTo(13.8, 4.8)
-      ..cubicTo(16, 4, 18.5, 5.5, 18.5, 8)
-      // braço dir
-      ..lineTo(19.5, 11)
-      ..lineTo(18.2, 18)
-      // base peito
-      ..cubicTo(16.5, 20.5, 13.5, 21.5, 12, 21.5)
-      ..cubicTo(10.5, 21.5, 7.5, 20.5, 5.8, 18)
-      ..lineTo(4.5, 11)
-      ..close();
-    c.drawPath(body, s);
+  // ---- helpers (coords em 0–100) ----
 
-    // Linha central peitoral.
-    c.drawLine(const Offset(12, 9.5), const Offset(12, 17.5), s);
-
-    // Curvas internas peitorais (como a prévia).
-    final leftPec = Path()
-      ..moveTo(7.2, 10.5)
-      ..quadraticBezierTo(9.5, 12.5, 11.5, 14.5);
-    c.drawPath(leftPec, s);
-    final rightPec = Path()
-      ..moveTo(16.8, 10.5)
-      ..quadraticBezierTo(14.5, 12.5, 12.5, 14.5);
-    c.drawPath(rightPec, s);
-
-    // Marcas peitorais (pontos suaves via mini arcos).
-    c.drawArc(
-      Rect.fromCenter(center: const Offset(9.2, 12.8), width: 2.2, height: 2.2),
-      0.4,
-      math.pi * 1.2,
-      false,
-      s,
-    );
-    c.drawArc(
-      Rect.fromCenter(center: const Offset(14.8, 12.8), width: 2.2, height: 2.2),
-      0.4,
-      math.pi * 1.2,
-      false,
-      s,
-    );
+  void _line(Canvas c, double x1, double y1, double x2, double y2) {
+    c.drawLine(Offset(x1, y1), Offset(x2, y2), _s);
   }
 
-  /// Costas — vista posterior com trapézio, lâminas e coluna.
-  void _costas(Canvas c, Paint s) {
-    // Contorno ombros → cintura (V-taper).
+  void _path(Canvas c, Path p) => c.drawPath(p, _s);
+
+  void _circle(Canvas c, double x, double y, double r) {
+    c.drawCircle(Offset(x, y), r, _s);
+  }
+
+  // ---- PEITO (prévia: torso frontal peitoral) ----
+  void _peito(Canvas c) {
+    // Contorno externo ombros + braços + base peito.
     final outline = Path()
-      ..moveTo(5, 6.5)
-      ..lineTo(7.5, 5)
-      ..lineTo(10.5, 5.5)
-      ..lineTo(12, 6.5)
-      ..lineTo(13.5, 5.5)
-      ..lineTo(16.5, 5)
-      ..lineTo(19, 6.5)
-      ..lineTo(17.5, 12)
-      ..lineTo(15.2, 19.5)
-      ..lineTo(8.8, 19.5)
-      ..lineTo(6.5, 12)
-      ..close();
-    c.drawPath(outline, s);
+      ..moveTo(22, 78) // braço esq baixo
+      ..lineTo(20, 48)
+      ..quadraticBezierTo(18, 28, 28, 18) // ombro esq
+      ..quadraticBezierTo(38, 10, 46, 22) // clavícula esq → centro
+      ..lineTo(50, 28) // entalhe peitoral
+      ..lineTo(54, 22)
+      ..quadraticBezierTo(62, 10, 72, 18) // ombro dir
+      ..quadraticBezierTo(82, 28, 80, 48)
+      ..lineTo(78, 78); // braço dir baixo
+    _path(c, outline);
+
+    // Arco inferior dos peitorais (U).
+    final pecs = Path()
+      ..moveTo(28, 42)
+      ..quadraticBezierTo(36, 58, 50, 62)
+      ..quadraticBezierTo(64, 58, 72, 42);
+    _path(c, pecs);
+
+    // Separação superior dos peitorais.
+    _line(c, 42, 30, 50, 36);
+    _line(c, 58, 30, 50, 36);
+
+    // Marcas peitorais.
+    _circle(c, 38, 48, 2.2);
+    _circle(c, 62, 48, 2.2);
+  }
+
+  // ---- COSTAS (prévia: costas em V + coluna + lâminas) ----
+  void _costas(Canvas c) {
+    // Contorno costas.
+    final outline = Path()
+      ..moveTo(22, 80)
+      ..lineTo(18, 42)
+      ..quadraticBezierTo(16, 22, 28, 14) // ombro esq
+      ..quadraticBezierTo(38, 8, 50, 12) // trapézio
+      ..quadraticBezierTo(62, 8, 72, 14)
+      ..quadraticBezierTo(84, 22, 82, 42)
+      ..lineTo(78, 80);
+    _path(c, outline);
 
     // Coluna.
-    c.drawLine(const Offset(12, 7), const Offset(12, 18.8), s);
+    _line(c, 50, 16, 50, 78);
 
-    // Lâminas / dorsais (arcos internos).
-    c.drawArc(
-      const Rect.fromLTWH(6.5, 8, 5, 7),
-      -0.3,
-      math.pi * 0.95,
-      false,
-      s,
-    );
-    c.drawArc(
-      const Rect.fromLTWH(12.5, 8, 5, 7),
-      math.pi * 0.35,
-      math.pi * 0.95,
-      false,
-      s,
-    );
+    // Lâminas / dorsais.
+    final left = Path()
+      ..moveTo(28, 28)
+      ..quadraticBezierTo(36, 40, 42, 55)
+      ..quadraticBezierTo(34, 50, 28, 42);
+    _path(c, left);
+    final right = Path()
+      ..moveTo(72, 28)
+      ..quadraticBezierTo(64, 40, 58, 55)
+      ..quadraticBezierTo(66, 50, 72, 42);
+    _path(c, right);
 
     // Braços.
-    c.drawLine(const Offset(5.5, 8), const Offset(4.5, 16), s);
-    c.drawLine(const Offset(18.5, 8), const Offset(19.5, 16), s);
+    _line(c, 22, 30, 16, 70);
+    _line(c, 78, 30, 84, 70);
   }
 
-  /// Pernas — coxas/quads de frente (prévia).
-  void _pernas(Canvas c, Paint s) {
-    // Contorno das duas pernas.
-    final legs = Path()
-      ..moveTo(7.5, 4)
-      ..lineTo(6, 12)
-      ..quadraticBezierTo(5.5, 15, 7, 20)
-      ..lineTo(9.5, 20)
-      ..quadraticBezierTo(10.5, 15, 10.2, 12)
-      ..lineTo(11.2, 8)
-      ..lineTo(12.8, 8)
-      ..lineTo(13.8, 12)
-      ..quadraticBezierTo(13.5, 15, 14.5, 20)
-      ..lineTo(17, 20)
-      ..quadraticBezierTo(18.5, 15, 18, 12)
-      ..lineTo(16.5, 4)
-      ..close();
-    c.drawPath(legs, s);
+  // ---- PERNAS (prévia: coxas de frente com V interno) ----
+  void _pernas(Canvas c) {
+    // Contorno externo esquerdo.
+    final outerL = Path()
+      ..moveTo(28, 8)
+      ..lineTo(22, 45)
+      ..quadraticBezierTo(20, 62, 26, 92);
+    _path(c, outerL);
+    // Contorno externo direito.
+    final outerR = Path()
+      ..moveTo(72, 8)
+      ..lineTo(78, 45)
+      ..quadraticBezierTo(80, 62, 74, 92);
+    _path(c, outerR);
 
-    // Linha central / adutores.
-    c.drawLine(const Offset(12, 8), const Offset(12, 18), s);
+    // Parte superior (quadril).
+    _line(c, 28, 8, 72, 8);
 
-    // Contorno interno das coxas (como a prévia).
-    c.drawArc(
-      const Rect.fromLTWH(7.5, 10, 4, 6),
-      0.2,
-      math.pi * 0.8,
-      false,
-      s,
-    );
-    c.drawArc(
-      const Rect.fromLTWH(12.5, 10, 4, 6),
-      math.pi * 0.2,
-      math.pi * 0.8,
-      false,
-      s,
-    );
+    // V interno (adutores) — marca da prévia.
+    final inner = Path()
+      ..moveTo(42, 12)
+      ..quadraticBezierTo(46, 40, 50, 55)
+      ..quadraticBezierTo(54, 40, 58, 12);
+    _path(c, inner);
+
+    // Continuação das pernas internas para baixo.
+    _line(c, 50, 55, 42, 92);
+    _line(c, 50, 55, 58, 92);
+
+    // Marcas dos joelhos / vastus.
+    final kneeL = Path()
+      ..moveTo(28, 58)
+      ..quadraticBezierTo(34, 62, 38, 58);
+    _path(c, kneeL);
+    final kneeR = Path()
+      ..moveTo(72, 58)
+      ..quadraticBezierTo(66, 62, 62, 58);
+    _path(c, kneeR);
   }
 
-  /// Ombros — deltóides de frente.
-  void _ombros(Canvas c, Paint s) {
+  // ---- OMBROS (prévia: deltóides) ----
+  void _ombros(Canvas c) {
+    // Ombro esquerdo.
+    final l = Path()
+      ..moveTo(50, 22)
+      ..cubicTo(38, 14, 22, 22, 20, 38)
+      ..cubicTo(18, 52, 28, 58, 36, 55)
+      ..cubicTo(40, 42, 44, 32, 50, 28);
+    _path(c, l);
+    // Ombro direito.
+    final r = Path()
+      ..moveTo(50, 22)
+      ..cubicTo(62, 14, 78, 22, 80, 38)
+      ..cubicTo(82, 52, 72, 58, 64, 55)
+      ..cubicTo(60, 42, 56, 32, 50, 28);
+    _path(c, r);
+    // Tronco.
+    _line(c, 38, 55, 38, 88);
+    _line(c, 62, 55, 62, 88);
     // Pescoço.
-    c.drawLine(const Offset(12, 5), const Offset(12, 9), s);
-    // Ombros / deltóides arredondados.
-    final left = Path()
-      ..moveTo(12, 8)
-      ..cubicTo(9, 7, 5.5, 8.5, 5, 11.5)
-      ..cubicTo(4.5, 14, 6, 16, 8, 17)
-      ..lineTo(9.5, 14)
-      ..cubicTo(9, 12, 10, 10, 12, 9.5);
-    c.drawPath(left, s);
-    final right = Path()
-      ..moveTo(12, 8)
-      ..cubicTo(15, 7, 18.5, 8.5, 19, 11.5)
-      ..cubicTo(19.5, 14, 18, 16, 16, 17)
-      ..lineTo(14.5, 14)
-      ..cubicTo(15, 12, 14, 10, 12, 9.5);
-    c.drawPath(right, s);
-    // Tronco curto.
-    c.drawLine(const Offset(9.5, 14), const Offset(9.5, 19.5), s);
-    c.drawLine(const Offset(14.5, 14), const Offset(14.5, 19.5), s);
+    _line(c, 50, 12, 50, 22);
+    _circle(c, 50, 10, 5);
   }
 
-  /// Bíceps — braço flexionado clássico monoline.
-  void _biceps(Canvas c, Paint s) {
-    // Ombro → bíceps → antebraço → punho.
+  // ---- BÍCEPS (prévia: flex clássico) ----
+  void _biceps(Canvas c) {
+    // Braço flexionado.
     final arm = Path()
-      ..moveTo(7, 18.5)
-      ..quadraticBezierTo(6.5, 15, 8, 12.5)
-      ..quadraticBezierTo(9.5, 9.5, 13, 8)
-      ..quadraticBezierTo(16.5, 6.5, 18, 8.5)
-      ..quadraticBezierTo(19, 10.5, 17, 12)
-      ..quadraticBezierTo(14.5, 13.5, 13, 12)
-      ..quadraticBezierTo(11.5, 14, 12, 17)
-      ..quadraticBezierTo(12.2, 19, 10.5, 19.5);
-    c.drawPath(arm, s);
+      ..moveTo(28, 82) // punho
+      ..quadraticBezierTo(22, 70, 28, 55) // antebraço
+      ..quadraticBezierTo(36, 42, 48, 38) // cotovelo interno
+      ..quadraticBezierTo(62, 32, 72, 28) // bíceps → ombro
+      ..quadraticBezierTo(80, 24, 78, 36)
+      ..quadraticBezierTo(70, 48, 58, 52) // volta do bíceps
+      ..quadraticBezierTo(48, 58, 46, 70)
+      ..quadraticBezierTo(44, 82, 36, 88);
+    _path(c, arm);
     // Pico do bíceps.
-    c.drawArc(
-      const Rect.fromLTWH(12.5, 6.5, 5.5, 5),
-      math.pi * 0.9,
-      math.pi * 1.2,
-      false,
-      s,
-    );
+    final peak = Path()
+      ..moveTo(55, 30)
+      ..quadraticBezierTo(68, 18, 74, 30);
+    _path(c, peak);
   }
 
-  /// Tríceps — braço visto de trás / extensão.
-  void _triceps(Canvas c, Paint s) {
+  // ---- TRÍCEPS (prévia: braço flex outro ângulo) ----
+  void _triceps(Canvas c) {
     final arm = Path()
-      ..moveTo(8, 6)
-      ..quadraticBezierTo(10, 7, 11.5, 10)
-      ..quadraticBezierTo(13, 13.5, 12.5, 16)
-      ..quadraticBezierTo(12, 18.5, 14, 20)
-      ..quadraticBezierTo(16.5, 19, 17.5, 16.5)
-      ..quadraticBezierTo(18.5, 13, 16, 10)
-      ..quadraticBezierTo(13.5, 7, 11, 5.5)
-      ..close();
-    c.drawPath(arm, s);
-    // Linha do tríceps.
-    c.drawLine(const Offset(13, 9), const Offset(14.5, 15), s);
+      ..moveTo(30, 30)
+      ..quadraticBezierTo(38, 22, 52, 28)
+      ..quadraticBezierTo(68, 36, 72, 52)
+      ..quadraticBezierTo(74, 68, 62, 80)
+      ..quadraticBezierTo(50, 88, 42, 78)
+      ..quadraticBezierTo(36, 66, 42, 54)
+      ..quadraticBezierTo(48, 44, 42, 34)
+      ..quadraticBezierTo(34, 28, 30, 30);
+    _path(c, arm);
+    _line(c, 48, 40, 58, 62);
   }
 
-  /// Abdômen — torso com six-pack monoline.
-  void _abdomen(Canvas c, Paint s) {
-    // Contorno torso.
+  // ---- ABDÔMEN (prévia: six-pack) ----
+  void _abdomen(Canvas c) {
     final torso = Path()
-      ..moveTo(8, 4.5)
-      ..lineTo(16, 4.5)
-      ..lineTo(17.5, 10)
-      ..lineTo(16.5, 19.5)
-      ..lineTo(7.5, 19.5)
-      ..lineTo(6.5, 10)
+      ..moveTo(32, 12)
+      ..lineTo(68, 12)
+      ..lineTo(74, 40)
+      ..lineTo(70, 88)
+      ..lineTo(30, 88)
+      ..lineTo(26, 40)
       ..close();
-    c.drawPath(torso, s);
-    // Linha alba.
-    c.drawLine(const Offset(12, 5.5), const Offset(12, 18.5), s);
-    // Faixas horizontais.
-    c.drawLine(const Offset(8.2, 9), const Offset(15.8, 9), s);
-    c.drawLine(const Offset(7.8, 13), const Offset(16.2, 13), s);
-    c.drawLine(const Offset(7.8, 16.5), const Offset(16.2, 16.5), s);
+    _path(c, torso);
+    _line(c, 50, 14, 50, 86);
+    _line(c, 30, 34, 70, 34);
+    _line(c, 28, 52, 72, 52);
+    _line(c, 30, 70, 70, 70);
   }
 
-  /// Glúteos — vista posterior monoline (prévia).
-  void _gluteos(Canvas c, Paint s) {
+  // ---- GLÚTEOS (prévia: posterior glúteo) ----
+  void _gluteos(Canvas c) {
     final shape = Path()
-      ..moveTo(7, 5)
-      ..lineTo(8.5, 5)
-      ..quadraticBezierTo(10, 8, 11.5, 11)
-      ..lineTo(12.5, 11)
-      ..quadraticBezierTo(14, 8, 15.5, 5)
-      ..lineTo(17, 5)
-      ..lineTo(18, 12)
-      ..quadraticBezierTo(17.5, 18, 15.5, 20)
-      ..lineTo(13.2, 20)
-      ..lineTo(12, 14)
-      ..lineTo(10.8, 20)
-      ..lineTo(8.5, 20)
-      ..quadraticBezierTo(6.5, 18, 6, 12)
+      ..moveTo(30, 10)
+      ..lineTo(36, 10)
+      ..quadraticBezierTo(42, 28, 46, 42)
+      ..lineTo(54, 42)
+      ..quadraticBezierTo(58, 28, 64, 10)
+      ..lineTo(70, 10)
+      ..lineTo(74, 40)
+      ..quadraticBezierTo(76, 70, 68, 90)
+      ..lineTo(56, 90)
+      ..lineTo(50, 55)
+      ..lineTo(44, 90)
+      ..lineTo(32, 90)
+      ..quadraticBezierTo(24, 70, 26, 40)
       ..close();
-    c.drawPath(shape, s);
-    // Divisão central.
-    c.drawLine(const Offset(12, 11), const Offset(12, 19.5), s);
+    _path(c, shape);
+    _line(c, 50, 42, 50, 88);
   }
 
-  /// Posterior de coxa — perna de perfil flexionada.
-  void _posterior(Canvas c, Paint s) {
+  // ---- POSTERIOR (prévia: perna lateral flexionada) ----
+  void _posterior(Canvas c) {
     final leg = Path()
-      ..moveTo(8, 5)
-      ..lineTo(10.5, 11)
-      ..lineTo(9, 14)
-      ..quadraticBezierTo(8, 16.5, 10, 19.5)
-      ..lineTo(14, 19)
-      ..quadraticBezierTo(16, 16, 15, 13)
-      ..lineTo(14, 10)
-      ..quadraticBezierTo(13, 6, 11, 4.5);
-    c.drawPath(leg, s);
-    // Ênfase no posterior.
-    c.drawArc(
-      const Rect.fromLTWH(9.5, 7, 5, 6),
-      -0.4,
-      math.pi * 0.9,
-      false,
-      s,
-    );
+      ..moveTo(38, 12)
+      ..lineTo(48, 40)
+      ..lineTo(40, 52)
+      ..quadraticBezierTo(32, 62, 42, 88)
+      ..lineTo(58, 86)
+      ..quadraticBezierTo(68, 70, 62, 55)
+      ..lineTo(58, 40)
+      ..quadraticBezierTo(55, 22, 48, 12);
+    _path(c, leg);
+    // Hamstring curve.
+    final ham = Path()
+      ..moveTo(48, 28)
+      ..quadraticBezierTo(62, 38, 56, 52);
+    _path(c, ham);
   }
 
-  /// Panturrilha — perna de perfil com volume da panturrilha.
-  void _panturrilha(Canvas c, Paint s) {
+  // ---- PANTURRILHA (prévia: canela + panturrilha) ----
+  void _panturrilha(Canvas c) {
     final leg = Path()
-      ..moveTo(11, 3.5)
-      ..lineTo(10.5, 10)
-      ..quadraticBezierTo(8.5, 13, 10, 16.5)
-      ..quadraticBezierTo(11, 18.5, 10.5, 20.5)
-      ..lineTo(14.5, 20.5)
-      ..quadraticBezierTo(15.5, 17, 14.5, 14)
-      ..quadraticBezierTo(16.5, 11, 14, 8)
-      ..lineTo(13.5, 3.5)
-      ..close();
-    c.drawPath(leg, s);
-    // Volume da panturrilha.
-    c.drawArc(
-      const Rect.fromLTWH(9.5, 11, 5.5, 6),
-      -0.2,
-      math.pi * 1.1,
-      false,
-      s,
-    );
+      ..moveTo(44, 8)
+      ..lineTo(42, 36)
+      ..quadraticBezierTo(34, 48, 40, 62)
+      ..quadraticBezierTo(42, 72, 38, 90)
+      ..lineTo(58, 90)
+      ..quadraticBezierTo(62, 72, 58, 60)
+      ..quadraticBezierTo(68, 48, 56, 34)
+      ..lineTo(54, 8);
+    _path(c, leg);
+    final calf = Path()
+      ..moveTo(42, 42)
+      ..quadraticBezierTo(55, 48, 52, 62);
+    _path(c, calf);
   }
 
-  /// Lombar — coluna inferior.
-  void _lombar(Canvas c, Paint s) {
-    c.drawLine(const Offset(12, 4.5), const Offset(12, 19.5), s);
-    for (final y in [7.0, 10.5, 14.0, 17.5]) {
-      c.drawCircle(Offset(12, y), 1.4, s);
+  // ---- LOMBAR ----
+  void _lombar(Canvas c) {
+    _line(c, 50, 10, 50, 90);
+    for (final y in [22.0, 38.0, 54.0, 70.0]) {
+      _circle(c, 50, y, 5);
     }
-    c.drawLine(const Offset(7.5, 15), const Offset(16.5, 15), s);
+    _line(c, 28, 60, 72, 60);
   }
 
-  /// Antebraço.
-  void _antebraco(Canvas c, Paint s) {
+  // ---- ANTEBRAÇO ----
+  void _antebraco(Canvas c) {
     final arm = Path()
-      ..moveTo(6.5, 5.5)
-      ..lineTo(9.5, 14)
-      ..lineTo(14.5, 14)
-      ..lineTo(17.5, 5.5);
-    c.drawPath(arm, s);
-    c.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(9, 14, 6, 5.5),
-        const Radius.circular(1.5),
-      ),
-      s,
-    );
+      ..moveTo(28, 18)
+      ..lineTo(40, 58)
+      ..lineTo(60, 58)
+      ..lineTo(72, 18);
+    _path(c, arm);
+    final hand = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          const Rect.fromLTWH(38, 58, 24, 24),
+          const Radius.circular(6),
+        ),
+      );
+    _path(c, hand);
   }
 
-  /// Trapézio.
-  void _trapezio(Canvas c, Paint s) {
-    c.drawCircle(const Offset(12, 5.5), 2.0, s);
-    c.drawLine(const Offset(12, 7.5), const Offset(12, 12), s);
-    c.drawLine(const Offset(5, 11), const Offset(19, 11), s);
-    c.drawLine(const Offset(6.5, 11), const Offset(12, 7.5), s);
-    c.drawLine(const Offset(17.5, 11), const Offset(12, 7.5), s);
-    c.drawLine(const Offset(8, 11), const Offset(8, 18.5), s);
-    c.drawLine(const Offset(16, 11), const Offset(16, 18.5), s);
+  // ---- TRAPÉZIO ----
+  void _trapezio(Canvas c) {
+    _circle(c, 50, 16, 8);
+    _line(c, 50, 24, 50, 48);
+    _line(c, 18, 48, 82, 48);
+    _line(c, 24, 48, 50, 26);
+    _line(c, 76, 48, 50, 26);
+    _line(c, 32, 48, 32, 88);
+    _line(c, 68, 48, 68, 88);
   }
 
-  /// Pescoço.
-  void _pescoco(Canvas c, Paint s) {
-    c.drawCircle(const Offset(12, 6.5), 3.0, s);
-    c.drawLine(const Offset(12, 9.5), const Offset(12, 18), s);
-    c.drawLine(const Offset(9, 12.5), const Offset(15, 12.5), s);
-    c.drawLine(const Offset(9.5, 15.5), const Offset(14.5, 15.5), s);
+  // ---- PESCOÇO ----
+  void _pescoco(Canvas c) {
+    _circle(c, 50, 22, 12);
+    _line(c, 50, 34, 50, 82);
+    _line(c, 36, 50, 64, 50);
+    _line(c, 38, 64, 62, 64);
   }
 
-  /// Cardio — coração + pulso (prévia).
-  void _cardio(Canvas c, Paint s) {
+  // ---- CARDIO (prévia: coração + ECG) ----
+  void _cardio(Canvas c) {
     final heart = Path()
-      ..moveTo(12, 19)
-      ..cubicTo(4.5, 13.5, 4, 8.5, 8, 6.2)
-      ..cubicTo(9.8, 5.2, 11.3, 6.2, 12, 7.8)
-      ..cubicTo(12.7, 6.2, 14.2, 5.2, 16, 6.2)
-      ..cubicTo(20, 8.5, 19.5, 13.5, 12, 19)
+      ..moveTo(50, 82)
+      ..cubicTo(18, 58, 16, 32, 34, 22)
+      ..cubicTo(42, 16, 48, 22, 50, 30)
+      ..cubicTo(52, 22, 58, 16, 66, 22)
+      ..cubicTo(84, 32, 82, 58, 50, 82)
       ..close();
-    c.drawPath(heart, s);
-    // Linha de pulso.
+    _path(c, heart);
     final pulse = Path()
-      ..moveTo(3.5, 12)
-      ..lineTo(7, 12)
-      ..lineTo(8.5, 9.5)
-      ..lineTo(10.5, 14.5)
-      ..lineTo(12, 11)
-      ..lineTo(13.5, 12)
-      ..lineTo(20.5, 12);
-    c.drawPath(pulse, s);
+      ..moveTo(10, 50)
+      ..lineTo(28, 50)
+      ..lineTo(34, 36)
+      ..lineTo(42, 64)
+      ..lineTo(50, 44)
+      ..lineTo(56, 50)
+      ..lineTo(90, 50);
+    _path(c, pulse);
   }
 
-  /// Full body / outros — barra monoline (prévia).
-  void _fullBody(Canvas c, Paint s) {
-    // Anilhas esquerdas.
-    c.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(2.5, 8, 3.2, 8),
-        const Radius.circular(1),
-      ),
-      s,
+  // ---- FULL BODY / OUTROS (prévia: barra) ----
+  void _barbell(Canvas c) {
+    // Anilha esq externa.
+    _path(
+      c,
+      Path()
+        ..addRRect(
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(8, 30, 14, 40),
+            const Radius.circular(4),
+          ),
+        ),
     );
-    c.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(5.2, 9.5, 2.2, 5),
-        const Radius.circular(0.8),
-      ),
-      s,
+    // Anilha esq interna.
+    _path(
+      c,
+      Path()
+        ..addRRect(
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(20, 36, 10, 28),
+            const Radius.circular(3),
+          ),
+        ),
     );
     // Barra.
-    c.drawLine(const Offset(7.4, 12), const Offset(16.6, 12), s);
-    // Anilhas direitas.
-    c.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(16.6, 9.5, 2.2, 5),
-        const Radius.circular(0.8),
-      ),
-      s,
+    _line(c, 30, 50, 70, 50);
+    // Anilha dir interna.
+    _path(
+      c,
+      Path()
+        ..addRRect(
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(70, 36, 10, 28),
+            const Radius.circular(3),
+          ),
+        ),
     );
-    c.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(18.3, 8, 3.2, 8),
-        const Radius.circular(1),
-      ),
-      s,
+    // Anilha dir externa.
+    _path(
+      c,
+      Path()
+        ..addRRect(
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(78, 30, 14, 40),
+            const Radius.circular(4),
+          ),
+        ),
     );
   }
 
   @override
-  bool shouldRepaint(covariant _MuscleSilhouettePainter oldDelegate) =>
-      oldDelegate.group != group || oldDelegate.color != color;
+  bool shouldRepaint(covariant _MusclePainter old) =>
+      old.group != group || old.color != color;
 }
