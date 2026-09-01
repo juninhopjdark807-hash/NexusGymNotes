@@ -39,12 +39,18 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   bool _creating = false;
   bool _showCreateForm = false;
 
+  /// Exercícios já presentes + adicionados nesta sessão da folha.
+  /// Mantém a seleção múltipla sem fechar a tela: cada toque adiciona e o
+  /// "Mais" vira um check verde; só o botão "Concluir" fecha.
+  late Set<String> _selected;
+
   /// Duplicata detectada — oferece selecionar o existente.
   Exercise? _duplicate;
 
   @override
   void initState() {
     super.initState();
+    _selected = {...widget.existingExerciseIds};
     _newNameController.addListener(_onNameChanged);
   }
 
@@ -90,9 +96,11 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   }
 
   void _select(Exercise exercise) {
-    if (widget.existingExerciseIds.contains(exercise.id)) return;
+    if (_selected.contains(exercise.id)) return;
+    setState(() => _selected.add(exercise.id));
+    // Adiciona SEM fechar a folha: o usuário continua selecionando vários
+    // exercícios e só sai ao tocar em "Concluir".
     widget.onAdded(exercise.id);
-    Navigator.of(context).pop();
   }
 
   Future<void> _createAndAdd() async {
@@ -110,8 +118,14 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
       if (!mounted) return;
       switch (result) {
         case CreateExerciseOk(:final exercise):
+          // Cria e mantém na tela: item entra na lista com check verde.
+          setState(() {
+            _selected.add(exercise.id);
+            _creating = false;
+            _showCreateForm = false;
+          });
+          _newNameController.clear();
           widget.onAdded(exercise.id);
-          Navigator.of(context).pop();
         case CreateExerciseDuplicate(:final existing):
           setState(() {
             _creating = false;
@@ -258,8 +272,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                   if (_duplicate != null)
                     _DuplicateBanner(
                       existing: _duplicate!,
-                      alreadyInWorkout:
-                          widget.existingExerciseIds.contains(_duplicate!.id),
+                      alreadyInWorkout: _selected.contains(_duplicate!.id),
                       onSelect: () => _select(_duplicate!),
                     ),
                   TextField(
@@ -304,6 +317,14 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                     onPressed: canCreate ? _createAndAdd : null,
                   ),
                 ],
+                // Concluir: única forma de sair após adicionar vários itens.
+                const SizedBox(height: 12),
+                AppButton(
+                  label: 'Concluir',
+                  icon: Icons.check_rounded,
+                  height: 54,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ],
             ),
           ),
@@ -344,7 +365,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
       i++;
       for (final ex in items) {
         if (i == index) {
-          final already = widget.existingExerciseIds.contains(ex.id);
+          final already = _selected.contains(ex.id);
           return _ExerciseTile(
             exercise: ex,
             alreadyAdded: already,
@@ -491,10 +512,14 @@ class _ExerciseTile extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
           decoration: BoxDecoration(
-            color: alreadyAdded ? C.accentSoft.withValues(alpha: 0.25) : C.surface2,
+            color: alreadyAdded
+                ? C.successSoft.withValues(alpha: 0.35)
+                : C.surface2,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: alreadyAdded ? C.accent.withValues(alpha: 0.35) : C.strokeSoft,
+              color: alreadyAdded
+                  ? C.success.withValues(alpha: 0.35)
+                  : C.strokeSoft,
             ),
           ),
           child: Row(
@@ -502,7 +527,7 @@ class _ExerciseTile extends StatelessWidget {
               MuscleIcon(
                 group: exercise.muscleGroup,
                 size: 16,
-                color: alreadyAdded ? C.accentSecondary : C.textFaint,
+                color: alreadyAdded ? C.success : C.textFaint,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -532,9 +557,12 @@ class _ExerciseTile extends StatelessWidget {
                   ],
                 ),
               ),
+              // "Mais" -> check verde ao adicionar (fica na tela até Concluir).
               Icon(
-                alreadyAdded ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
-                color: alreadyAdded ? C.accent : C.textDim,
+                alreadyAdded
+                    ? Icons.check_circle_rounded
+                    : Icons.add_circle_outline_rounded,
+                color: alreadyAdded ? C.success : C.textDim,
                 size: 20,
               ),
             ],
