@@ -132,7 +132,7 @@ def header(width_dp=390.0, scale=2.0):
         logo_font.getlength(" ") + 2.0 * scale
     draw_text(d, (x, y_logo), "GYM", gym_font, ACCENT, spacing=2.0 * scale)
 
-    # —— tagline na MESMA coluna (alinhada ao N) ——
+    # —— tagline na MESMA coluna (alinhada ao N), com pequeno respiro ——
     tag_size = int((compact and 11.5 or 12.5) * scale)
     tag_font = font(FONT_BODY, tag_size, "Medium")
     tag_nat = int(d.textlength("Seu treino. Seu progresso.", font=tag_font))
@@ -140,17 +140,16 @@ def header(width_dp=390.0, scale=2.0):
     if tag_fit < 1.0:
         tag_size = int(tag_size * max(0.55, tag_fit))
         tag_font = font(FONT_BODY, tag_size, "Medium")
-    tag_y = pad_t + mark + int((compact and 4 or 6) * scale)
+    tag_y = pad_t + mark + int((compact and 3 or 4) * scale)
     d.text((text_x, tag_y), "Seu treino. Seu progresso.", font=tag_font,
            fill=TEXT_DIM)
 
-    # —— badge de data à direita (centrado no bloco) ——
+    # —— badge de data à direita, alinhado com a LINHA do título/ícone ——
     b_font = font(FONT_BODY, int(10.5 * scale), "Bold")
     b_h = int(31 * scale)
     b_w = int(118 * scale)
     b_x = W - pad_l - b_w
-    b_y = pad_t + (mark + int((compact and 4 or 6) * scale) +
-                   int(tag_size) - b_h) // 2
+    b_y = pad_t + (mark - b_h) // 2
     d.rounded_rectangle((b_x, b_y, b_x + b_w, b_y + b_h), radius=int(10 * scale),
                         fill=SURFACE2, outline=STROKE, width=int(1.2 * scale))
     ci = int(14 * scale)
