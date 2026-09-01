@@ -88,58 +88,59 @@ class _EditSetSheetState extends State<_EditSetSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          const Text(
-            'EDITAR SÉRIE',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 2,
-              color: C.textFaint,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('PESO (KG)', style: AppText.label),
-                    const SizedBox(height: 8),
-                    WeightField(controller: _weight),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 126,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('REPS', style: AppText.label),
-                    const SizedBox(height: 8),
-                    RepsField(controller: _reps),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          AppButton(label: 'Salvar', onPressed: _save),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: _delete,
-            child: const Text(
-              'EXCLUIR SÉRIE',
+            const Text(
+              'EDITAR SÉRIE',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-                color: C.danger,
+                letterSpacing: 2,
+                color: C.textFaint,
               ),
             ),
-          ),
+            const SizedBox(height: 18),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('PESO (KG)', style: AppText.label),
+                      const SizedBox(height: 8),
+                      WeightField(controller: _weight),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('REPS', style: AppText.label),
+                      const SizedBox(height: 8),
+                      RepsField(controller: _reps),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            AppButton(label: 'Salvar', onPressed: _save),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _delete,
+              child: const Text(
+                'EXCLUIR SÉRIE',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: C.danger,
+                ),
+              ),
+            ),
           ],
         ),
       ),

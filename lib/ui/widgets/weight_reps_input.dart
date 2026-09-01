@@ -11,7 +11,7 @@ class StepButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.enabled = true,
-    this.size = 36,
+    this.size = 34,
   });
 
   final IconData icon;
@@ -58,10 +58,11 @@ const InputDecoration _fieldDecoration = InputDecoration(
   isCollapsed: true,
   isDense: true,
   contentPadding: EdgeInsets.zero,
-  constraints: BoxConstraints(),
+  // Anula padding do InputDecorationTheme global.
+  constraints: BoxConstraints(minWidth: 0, minHeight: 0),
 );
 
-/// Campo grande de peso (kg) — hierarquia visual máxima no treino.
+/// Campo grande de peso (kg).
 class WeightField extends StatelessWidget {
   const WeightField({
     super.key,
@@ -87,11 +88,11 @@ class WeightField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: C.surface2,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: C.strokeSoft),
       ),
       child: Row(
@@ -99,7 +100,6 @@ class WeightField extends StatelessWidget {
           StepButton(
             icon: Icons.remove,
             enabled: enabled,
-            size: 40,
             onTap: () => _step(-step),
           ),
           Expanded(
@@ -113,9 +113,9 @@ class WeightField extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: AppFonts.display,
-                fontSize: 28,
+                fontSize: 24,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.6,
+                letterSpacing: -0.5,
                 color: C.text,
                 height: 1.1,
               ),
@@ -126,7 +126,6 @@ class WeightField extends StatelessWidget {
           StepButton(
             icon: Icons.add,
             enabled: enabled,
-            size: 40,
             onTap: () => _step(step),
           ),
         ],
@@ -135,7 +134,7 @@ class WeightField extends StatelessWidget {
   }
 }
 
-/// Campo de repetições com largura garantida.
+/// Campo de repetições — preenche a largura do pai (sem overflow).
 class RepsField extends StatelessWidget {
   const RepsField({
     super.key,
@@ -157,25 +156,22 @@ class RepsField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 72,
-      constraints: const BoxConstraints(minWidth: 126),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      height: 64,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: C.surface2,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: C.strokeSoft),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           StepButton(
             icon: Icons.remove,
             enabled: enabled,
-            size: 40,
             onTap: () => _step(-step),
           ),
-          SizedBox(
-            width: 44,
+          Expanded(
             child: TextField(
               controller: controller,
               enabled: enabled,
@@ -187,9 +183,9 @@ class RepsField extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: AppFonts.display,
-                fontSize: 28,
+                fontSize: 24,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.6,
+                letterSpacing: -0.5,
                 color: C.text,
                 height: 1.1,
               ),
@@ -200,7 +196,6 @@ class RepsField extends StatelessWidget {
           StepButton(
             icon: Icons.add,
             enabled: enabled,
-            size: 40,
             onTap: () => _step(step),
           ),
         ],
@@ -209,14 +204,16 @@ class RepsField extends StatelessWidget {
   }
 }
 
-/// Linha de registro: [peso] [reps] [REGISTRAR].
+/// Linha de registro: [peso] [reps] [OK].
+///
+/// Layout flexível — sem larguras fixas conflitantes que causam overflow.
 class SetInputRow extends StatelessWidget {
   const SetInputRow({
     super.key,
     required this.weightController,
     required this.repsController,
     required this.onRegister,
-    this.registerLabel = 'CONCLUIR',
+    this.registerLabel = 'OK',
     this.enabled = true,
   });
 
@@ -228,56 +225,83 @@ class SetInputRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: WeightField(controller: weightController, enabled: enabled),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 132,
-          child: RepsField(controller: repsController, enabled: enabled),
-        ),
-        const SizedBox(width: 8),
-        _RegisterButton(
-          label: registerLabel,
-          onTap: enabled ? onRegister : null,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Em telas estreitas, reps e botão encolhem proporcionalmente.
+        final maxW = constraints.maxWidth;
+        final registerW = maxW < 340 ? 72.0 : 80.0;
+        final repsW = maxW < 340 ? 112.0 : 120.0;
+        final gap = maxW < 340 ? 6.0 : 8.0;
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: WeightField(
+                controller: weightController,
+                enabled: enabled,
+              ),
+            ),
+            SizedBox(width: gap),
+            SizedBox(
+              width: repsW,
+              child: RepsField(
+                controller: repsController,
+                enabled: enabled,
+              ),
+            ),
+            SizedBox(width: gap),
+            _RegisterButton(
+              label: registerLabel,
+              width: registerW,
+              onTap: enabled ? onRegister : null,
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
 class _RegisterButton extends StatelessWidget {
-  const _RegisterButton({required this.label, required this.onTap});
+  const _RegisterButton({
+    required this.label,
+    required this.onTap,
+    this.width = 80,
+  });
 
   final String label;
   final VoidCallback? onTap;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: onTap != null ? C.accent : C.accent.withValues(alpha: 0.45),
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: SizedBox(
-          width: 88,
-          height: 72,
+          width: width,
+          height: 64,
           child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-                height: 1.15,
-                color: onTap != null
-                    ? C.accentInk
-                    : C.accentInk.withValues(alpha: 0.5),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                  height: 1.1,
+                  color: onTap != null
+                      ? C.accentInk
+                      : C.accentInk.withValues(alpha: 0.5),
+                ),
               ),
             ),
           ),
