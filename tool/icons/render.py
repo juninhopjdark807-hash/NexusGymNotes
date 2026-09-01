@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Render tool/icons/spec.json as faithful Flutter-like preview.
+"""Render tool/icons/spec.json as REAL app sizes (42px home, 28px lists).
 
-Supersamples 4x to emulate antialiasing, draws the badge gradient/glow as in
-MuscleBadge, and composes a sheet at REAL app sizes (42px and 28px) so the
-preview matches what runs on device.
+Rows: 96px design check -> 42px (home) -> 28px (lists), all rendered with
+the same pipeline as Flutter (supersampled, then downscaled).
 """
 import json
 import math
@@ -15,16 +14,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SPEC = json.load(open(os.path.join(HERE, "spec.json"), encoding="utf-8"))
 OUT = os.path.join(HERE, "preview.png")
 
-SS = 4  # supersample factor
+SS = 4
 BG = (13, 13, 15, 255)
-FILL2 = (35, 38, 43, 255)          # inactive C.surface2 = 0xFF23262B
-FILL_A = (26, 22, 48, 255)         # active gradient inner
-RING = (139, 124, 255, 255)        # active border 0xFF8B7CFF
-INK = (238, 234, 255, 255)         # active icon 0xFFE8E4FF
+FILL_A = (26, 22, 48, 255)
+FILL_I = (35, 38, 43, 255)
+RING = (139, 124, 255, 255)
+INK = (238, 234, 255, 255)
 
-TOP = ["peito", "costas", "pernas", "ombros", "biceps",
-       "triceps", "abdomen", "gluteos", "posterior",
-       "panturrilha", "cardio", "outros"]
+GROUPS = ["peito", "costas", "pernas", "ombros", "biceps", "triceps",
+          "abdomen", "gluteos", "posterior", "panturrilha", "lombar",
+          "antebraco", "trapezio", "pescoco", "cardio", "outros"]
+LABELS = {
+    "peito": "PEITO", "costas": "COSTAS", "pernas": "PERNAS",
+    "ombros": "OMBROS", "biceps": "BÍCEPS", "triceps": "TRÍCEPS",
+    "abdomen": "ABDÔMEN", "gluteos": "GLÚTEOS", "posterior": "POSTERIOR",
+    "panturrilha": "PANTURRILHA", "lombar": "LOMBAR",
+    "antebraco": "ANTEBRAÇO", "trapezio": "TRAPÉZIO", "pescoco": "PESCOÇO",
+    "cardio": "CARDIO", "outros": "OUTROS",
+}
 
 
 def _bez(p0, p1, p2, p3=None, n=48):
@@ -85,8 +92,6 @@ def polylines(prim):
 
 
 def draw_icon(name, icon_size, sw_screen):
-    """Draw at SS scale, emulating Flutter's strokeWidth compensation.
-    Returns an SS-resolution image; downscale happens in badge()."""
     size = int(round(icon_size * SS))
     img = Image.new("RGBA", (size + 2 * SS, size + 2 * SS), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -104,21 +109,18 @@ def badge(name, size, active=True):
     total = (size + pad * 2) * SS
     img = Image.new("RGBA", (total, total), BG)
     d = ImageDraw.Draw(img)
-
-    # Radial-ish gradient / fill
     if active:
         fill = Image.new("RGBA", (total, total), (0, 0, 0, 0))
         fd = ImageDraw.Draw(fill)
         fd.ellipse([0, 0, total, total], fill=(42, 36, 96, 255))
-        fd.ellipse([total * 0.18, total * 0.18, total * 0.82, total * 0.82],
+        fd.ellipse([total * 0.2, total * 0.2, total * 0.8, total * 0.8],
                    fill=(34, 30, 78, 255))
-        fd.ellipse([total * 0.38, total * 0.38, total * 0.62, total * 0.62],
-                   fill=(26, 22, 48, 255))
+        fd.ellipse([total * 0.4, total * 0.4, total * 0.6, total * 0.6],
+                   fill=FILL_A)
         img.paste(fill, (0, 0))
     else:
-        d.ellipse([0, 0, total, total], fill=FILL2)
+        d.ellipse([0, 0, total, total], fill=FILL_I)
 
-    # Glow (only active) — BoxShadow blur 12, spread 0.5
     glow = img.filter(ImageFilter.GaussianBlur(total * 0.055))
     if active:
         ring_layer = Image.new("RGBA", (total, total), (0, 0, 0, 0))
@@ -130,12 +132,11 @@ def badge(name, size, active=True):
     img = Image.alpha_composite(img, glow)
 
     d = ImageDraw.Draw(img)
-    # border 1.6px @1x
     bw = int(round(1.6 * SS))
     d.ellipse([0, 0, total, total], outline=RING, width=bw)
 
-    icon_size = size * 0.64
-    sw = max(1.6, min(2.4, size * 0.055))
+    icon_size = size * 0.72
+    sw = max(2.0, min(2.8, size * 0.09))
     ic = draw_icon(name, icon_size, sw)
     x = int(round((size - icon_size) / 2 + pad))
     img.alpha_composite(ic, (int(round(x * SS)), int(round(x * SS))))
@@ -144,53 +145,42 @@ def badge(name, size, active=True):
 
 
 def main():
-    font = None
-    try:
-        font = ImageFont.truetype(
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 11)
-    except Exception:
-        font = ImageFont.load_default()
-
-    labels = {
-        "peito": "PEITO", "costas": "COSTAS", "pernas": "PERNAS",
-        "ombros": "OMBROS", "biceps": "BÍCEPS", "triceps": "TRÍCEPS",
-        "abdomen": "ABDÔMEN", "gluteos": "GLÚTEOS", "posterior": "POSTERIOR",
-        "panturrilha": "PANTURRILHA", "cardio": "CARDIO", "outros": "OUTROS",
-    }
-
-    big = 84
-    small = 56
-    gap = 10
-    label_h = 16
-    cell = big + gap
+    font = ImageFont.truetype(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 11)
     cols = 4
-    rows = ((len(TOP) + cols - 1) // cols)
+    pad = 16
 
-    w = pad = 12
-    w = pad * 2 + cols * cell
-    h = pad * 2 + rows * (big + label_h + gap)
+    rows = [(96, "96px — detalhe do desenho"),
+            (42, "42px — home (tamanho real no aparelho)"),
+            (28, "28px — listas (tamanho real no aparelho)")]
 
-    img = Image.new("RGBA", (w, h), BG)
+    cell = max(96, 42, 28) + 42
+    gap = 20
+    W = pad * 2 + cols * cell + (cols - 1) * gap
+    H = pad
+    sections = []
+    for size, title in rows:
+        nrows = (len(GROUPS) + cols - 1) // cols
+        h = 20 + nrows * (size + 40) + 24
+        sections.append((size, title, h))
+        H += h
+    H += pad
+
+    img = Image.new("RGBA", (W, H), BG)
     d = ImageDraw.Draw(img)
-
-    for i, name in enumerate(TOP):
-        col, row = i % cols, i // cols
-        cx = pad + col * cell + cell // 2
-        cy = pad + row * (big + label_h + gap) + big // 2
-        b = badge(name, big)
-        img.alpha_composite(b, (int(cx - b.width / 2), int(cy - b.height / 2)))
-        d.text((cx, cy + big / 2 + 2), labels[name], font=font,
-               fill=(220, 218, 232, 255), anchor="ma")
-
-    # Second row: real 28px badge to verify legibility
-    y2 = pad + rows * (big + label_h + gap) + 6
-    x = pad + cell // 2
-    for name in TOP:
-        b = badge(name, 28, active=True)
-        img.alpha_composite(b, (int(x - b.width / 2), int(y2)))
-        d.text((x, y2 + 32), labels[name], font=font,
-               fill=(160, 158, 175, 255), anchor="ma")
-        x += cell
+    y = pad
+    for size, title, h in sections:
+        d.text((pad, y + 2), title, font=font, fill=(160, 158, 175, 255))
+        yy = y + 22
+        for i, name in enumerate(GROUPS):
+            col, row = i % cols, i // cols
+            cx = pad + col * cell + cell // 2
+            cy = yy + row * (size + 40) + size // 2
+            b = badge(name, size)
+            img.alpha_composite(b, (int(cx - b.width / 2), int(cy - b.height / 2)))
+            d.text((cx, cy + size / 2 + 5), LABELS[name], font=font,
+                   fill=(214, 212, 228), anchor="ma")
+        y += h
 
     img.convert("RGB").save(OUT)
     print("saved", OUT, img.size)

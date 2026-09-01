@@ -139,7 +139,7 @@ class MuscleBadge extends StatelessWidget {
         child: MuscleIcon(
           group: group,
           // Ícone maior no círculo para legibilidade (~64%).
-          size: size * 0.64,
+          size: size * 0.70,
           active: active,
         ),
       ),
@@ -166,7 +166,7 @@ class _MusclePainter extends CustomPainter {
     final inner = side - pad * 2;
     final scale = inner / 100.0;
     // Traço fino monoline: ~5.5% do ícone, compensado pela escala do canvas.
-    final swScreen = (side * 0.055).clamp(1.6, 2.4);
+    final swScreen = (side * 0.075).clamp(1.8, 2.6);
     _s = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
