@@ -9,6 +9,7 @@ import '../../domain/models/exercise.dart';
 import '../../state/active_workout.dart';
 import '../../state/providers.dart';
 import '../widgets/app_button.dart';
+import '../widgets/session_summary_dialog.dart';
 import 'cardio_page.dart';
 import 'exercise_page.dart';
 
@@ -147,8 +148,18 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    final sessionId = ref.read(activeWorkoutProvider)?.sessionId;
     await ref.read(activeWorkoutProvider.notifier).finish();
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    // Resumo completo da sessão (sem cardio, se encerrou antes).
+    if (sessionId != null) {
+      await showSessionSummaryDialog(
+        context,
+        sessionId: sessionId,
+        ref: ref,
+      );
+    }
   }
 
   @override

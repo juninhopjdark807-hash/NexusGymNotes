@@ -78,5 +78,22 @@ String formatInterval(Duration d) {
   return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
 
+/// Duração da sessão em HH:MM:SS (a partir de timestamps reais).
+String formatSessionDuration(DateTime start, DateTime? end) {
+  if (end == null) return '—';
+  var d = end.difference(start);
+  if (d.isNegative) d = Duration.zero;
+  // Mínimo 1s se houve fim após início no mesmo segundo.
+  if (d.inSeconds == 0 && end.isAfter(start)) {
+    d = const Duration(seconds: 1);
+  }
+  final h = d.inHours;
+  final m = d.inMinutes % 60;
+  final s = d.inSeconds % 60;
+  return '${h.toString().padLeft(2, '0')}:'
+      '${m.toString().padLeft(2, '0')}:'
+      '${s.toString().padLeft(2, '0')}';
+}
+
 /// Índice do dia da semana (0 = domingo).
 int weekdayIndex(DateTime d) => d.weekday % 7;

@@ -7,9 +7,8 @@ import '../../core/theme.dart';
 import '../../domain/logic/cardio_calories.dart';
 import '../../domain/models/cardio_record.dart';
 import '../../state/providers.dart';
-import '../app_frame.dart';
 import '../widgets/app_button.dart';
-import 'summary_screen.dart';
+import '../widgets/session_summary_dialog.dart';
 
 final _uuid = const Uuid();
 
@@ -90,12 +89,9 @@ class _CardioPageState extends ConsumerState<CardioPage> {
     final sessionId = workout.sessionId;
     await ref.read(activeWorkoutProvider.notifier).finish(cardio: cardio);
     if (!mounted) return;
+    // Fecha a tela de treino e mostra o resumo único da sessão.
     Navigator.of(context).pop();
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AppFrame(child: SummaryScreen(sessionId: sessionId)),
-      ),
-    );
+    await showSessionSummaryDialog(context, sessionId: sessionId, ref: ref);
   }
 
   @override
