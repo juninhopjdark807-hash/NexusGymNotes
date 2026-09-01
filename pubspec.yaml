@@ -29,6 +29,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    # Marca visual do header da tela inicial (não é o ícone do launcher).
+    - iconeinicio.png
+
   fonts:
     - family: Inter
       fonts:

@@ -155,33 +155,53 @@ class _HomeHeader extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'NEXUS',
-                                  style: TextStyle(
-                                    fontFamily: AppFonts.display,
-                                    fontSize: logoSize,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 2.0,
-                                    height: 1.0,
-                                    color: C.text,
+                          // ---- Marca: asset "iconeinicial" + NEXUS GYM ----
+                          // O ícone é elemento visual (parte da marca), não
+                          // botão — pequeno, alinhado ao texto, sem círculo,
+                          // moldura ou fundo adicionais.
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'iconeinicio.png',
+                                width: compact ? 28 : 31,
+                                height: compact ? 28 : 31,
+                                fit: BoxFit.contain,
+                                filterQuality: FilterQuality.medium,
+                              ),
+                              SizedBox(width: compact ? 7 : 9),
+                              Flexible(
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'NEXUS',
+                                        style: TextStyle(
+                                          fontFamily: AppFonts.display,
+                                          fontSize: logoSize,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 2.0,
+                                          height: 1.0,
+                                          color: C.text,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: ' GYM',
+                                        style: TextStyle(
+                                          fontFamily: AppFonts.display,
+                                          fontSize: logoSize,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 2.0,
+                                          height: 1.0,
+                                          color: C.accent,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                TextSpan(
-                                  text: ' GYM',
-                                  style: TextStyle(
-                                    fontFamily: AppFonts.display,
-                                    fontSize: logoSize,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 2.0,
-                                    height: 1.0,
-                                    color: C.accent,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: compact ? 5 : 7),
                           Text(
