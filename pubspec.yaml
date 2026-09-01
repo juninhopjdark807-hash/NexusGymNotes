@@ -32,6 +32,8 @@ flutter:
   assets:
     # Marca visual do header da tela inicial (não é o ícone do launcher).
     - iconeinicio.png
+    # Logo completo exibido na splash (mesmo asset nativo, sem modificação).
+    - icone
 
   fonts:
     - family: Inter

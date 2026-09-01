@@ -95,9 +95,12 @@ class _HomeHeader extends StatelessWidget {
     // Telas menores: reduz espaçamento/tamanhos antes de qualquer outra coisa.
     final h = MediaQuery.sizeOf(context).height;
     final compact = h < 700;
-    final padV = compact ? 14.0 : 22.0;
+    final padV = compact ? 13.0 : 20.0;
     final logoSize = compact ? 24.0 : 27.0;
     final taglineSize = compact ? 11.5 : 12.5;
+    // Marca ("iconeinicial"): presença equivalente ao conjunto NEXUS GYM.
+    final markSize = compact ? 34.0 : 40.0;
+    final markGap = compact ? 8.0 : 10.0;
 
     return ClipRect(
       child: Stack(
@@ -110,6 +113,28 @@ class _HomeHeader extends StatelessWidget {
               child: Container(
                 width: 230,
                 height: 230,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      C.accent.withValues(alpha: 0.12),
+                      C.accent.withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // ---- Elemento abstrato: glow sutil atrás da marca (identidade
+          // do "iconeinicial": dark + roxo + glow discreto) ----
+          Positioned(
+            left: compact ? -58 : -46,
+            top: compact ? -62 : -50,
+            child: IgnorePointer(
+              child: Container(
+                width: 200,
+                height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
@@ -134,7 +159,7 @@ class _HomeHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: C.accent.withValues(alpha: 0.06),
+                    color: C.accent.withValues(alpha: 0.08),
                     width: 1.2,
                   ),
                 ),
@@ -165,54 +190,66 @@ class _HomeHeader extends StatelessWidget {
                             children: [
                               Image.asset(
                                 'iconeinicio.png',
-                                width: compact ? 28 : 31,
-                                height: compact ? 28 : 31,
+                                width: markSize,
+                                height: markSize,
                                 fit: BoxFit.contain,
                                 filterQuality: FilterQuality.medium,
                               ),
-                              SizedBox(width: compact ? 7 : 9),
+                              SizedBox(width: markGap),
                               Flexible(
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: 'NEXUS',
-                                        style: TextStyle(
-                                          fontFamily: AppFonts.display,
-                                          fontSize: logoSize,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 2.0,
-                                          height: 1.0,
-                                          color: C.text,
+                                child: FittedBox(
+                                  // Em telas estreitas o texto reduz para
+                                  // caber em uma linha (ícone mantém o
+                                  // tamanho) — sem quebra/overflow.
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: 'NEXUS',
+                                          style: TextStyle(
+                                            fontFamily: AppFonts.display,
+                                            fontSize: logoSize,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 2.0,
+                                            height: 1.0,
+                                            color: C.text,
+                                          ),
                                         ),
-                                      ),
-                                      TextSpan(
-                                        text: ' GYM',
-                                        style: TextStyle(
-                                          fontFamily: AppFonts.display,
-                                          fontSize: logoSize,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 2.0,
-                                          height: 1.0,
-                                          color: C.accent,
+                                        TextSpan(
+                                          text: ' GYM',
+                                          style: TextStyle(
+                                            fontFamily: AppFonts.display,
+                                            fontSize: logoSize,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 2.0,
+                                            height: 1.0,
+                                            color: C.accent,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                           SizedBox(height: compact ? 5 : 7),
-                          Text(
-                            'Seu treino. Seu progresso.',
-                            style: TextStyle(
-                              fontFamily: AppFonts.body,
-                              fontSize: taglineSize,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.3,
-                              height: 1.2,
-                              color: C.textDim,
+                          // Alinhada com o "N" de NEXUS (começa após a área
+                          // do ícone — não abaixo dele).
+                          Padding(
+                            padding: EdgeInsets.only(left: markSize + markGap),
+                            child: Text(
+                              'Seu treino. Seu progresso.',
+                              style: TextStyle(
+                                fontFamily: AppFonts.body,
+                                fontSize: taglineSize,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.3,
+                                height: 1.2,
+                                color: C.textDim,
+                              ),
                             ),
                           ),
                         ],
@@ -223,7 +260,7 @@ class _HomeHeader extends StatelessWidget {
                   ],
                 ),
 
-                SizedBox(height: compact ? 14 : 22),
+                SizedBox(height: compact ? 12 : 18),
 
                 // ---- Separação elegante: linha com gradiente sutil ----
                 Container(
@@ -240,7 +277,7 @@ class _HomeHeader extends StatelessWidget {
                   ),
                 ),
 
-                SizedBox(height: compact ? 10 : 14),
+                SizedBox(height: compact ? 10 : 12),
 
                 // ---- Seção de treinos ----
                 Row(

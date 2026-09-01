@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app_bootstrap.dart';
 import 'core/theme.dart';
 import 'state/providers.dart';
 import 'ui/app_frame.dart';
@@ -20,7 +21,8 @@ class NexusApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(),
       builder: (context, child) => Container(color: C.bg, child: child),
-      home: const RootShell(),
+      // Abre o banco já com a marca na tela (splash).
+      home: const AppBootstrap(child: RootShell()),
     );
   }
 }

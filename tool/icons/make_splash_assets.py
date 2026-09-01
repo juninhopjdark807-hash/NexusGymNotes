@@ -21,16 +21,17 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# 200dp de tamanho visual da marca na splash (boa presen�a, sem ocupar a tela).
-ANDROID_DP = 200
+# 240dp de tamanho visual da marca na splash (presença forte, sem ocupar a
+# tela inteira; o Android 12+ não usa esta camada — ver "splash_placeholder").
+ANDROID_DP = 240
 ANDROID = {
-    "mdpi": ANDROID_DP,      # 200 px
-    "hdpi": ANDROID_DP * 3 // 2,    # 300 px
-    "xhdpi": ANDROID_DP * 2,        # 400 px
-    "xxhdpi": ANDROID_DP * 3,       # 600 px
-    "xxxhdpi": ANDROID_DP * 4,      # 800 px
+    "mdpi": ANDROID_DP,      # 240 px
+    "hdpi": ANDROID_DP * 3 // 2,    # 360 px
+    "xhdpi": ANDROID_DP * 2,        # 480 px
+    "xxhdpi": ANDROID_DP * 3,       # 720 px
+    "xxxhdpi": ANDROID_DP * 4,      # 960 px
 }
-IOS = {"LaunchImage.png": 200, "LaunchImage@2x.png": 400, "LaunchImage@3x.png": 600}
+IOS = {"LaunchImage.png": 240, "LaunchImage@2x.png": 480, "LaunchImage@3x.png": 720}
 
 
 def main():
