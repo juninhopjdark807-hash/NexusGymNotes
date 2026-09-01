@@ -62,58 +62,7 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
-              child: Row(
-                children: [
-                  const Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'NEXUS',
-                          style: TextStyle(
-                            fontFamily: AppFonts.display,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' GYM',
-                          style: TextStyle(
-                            fontFamily: AppFonts.display,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 1.2,
-                            color: C.textDim,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: C.surface2,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: C.strokeSoft),
-                    ),
-                    child: Text(
-                      formatDayLabel(DateTime.now()),
-                      style: AppText.bodyFaint,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 18, 24, 8),
-              child: Text('TREINOS', style: AppText.displayM),
-            ),
+            const _HomeHeader(),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.only(top: 4, bottom: 110),
@@ -133,6 +82,222 @@ class HomeScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    // Telas menores: reduz espaçamento/tamanhos antes de qualquer outra coisa.
+    final h = MediaQuery.sizeOf(context).height;
+    final compact = h < 700;
+    final padV = compact ? 14.0 : 22.0;
+    final logoSize = compact ? 24.0 : 27.0;
+    final taglineSize = compact ? 11.5 : 12.5;
+
+    return ClipRect(
+      child: Stack(
+        children: [
+          // ---- Elemento abstrato: glow radial roxo discreto (ext. sup. dir.)
+          Positioned(
+            top: compact ? -70 : -50,
+            right: compact ? -90 : -60,
+            child: IgnorePointer(
+              child: Container(
+                width: 230,
+                height: 230,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      C.accent.withValues(alpha: 0.10),
+                      C.accent.withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // ---- Elemento abstrato: anel/linha sutil (ext. inf. esq.)
+          Positioned(
+            bottom: -120,
+            left: compact ? -70 : -50,
+            child: IgnorePointer(
+              child: Container(
+                width: 190,
+                height: 190,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: C.accent.withValues(alpha: 0.06),
+                    width: 1.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ---- Conteúdo do header ----
+          Padding(
+            padding: EdgeInsets.fromLTRB(24, padV, 24, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'NEXUS',
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.display,
+                                    fontSize: logoSize,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 2.0,
+                                    height: 1.0,
+                                    color: C.text,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: ' GYM',
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.display,
+                                    fontSize: logoSize,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 2.0,
+                                    height: 1.0,
+                                    color: C.accent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: compact ? 5 : 7),
+                          Text(
+                            'Seu treino. Seu progresso.',
+                            style: TextStyle(
+                              fontFamily: AppFonts.body,
+                              fontSize: taglineSize,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.3,
+                              height: 1.2,
+                              color: C.textDim,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const _DateBadge(),
+                  ],
+                ),
+
+                SizedBox(height: compact ? 14 : 22),
+
+                // ---- Separação elegante: linha com gradiente sutil ----
+                Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        C.stroke.withValues(alpha: 0.0),
+                        C.stroke.withValues(alpha: 0.75),
+                        C.stroke.withValues(alpha: 0.0),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: compact ? 10 : 14),
+
+                // ---- Seção de treinos ----
+                Row(
+                  children: [
+                    const Text('TREINOS', style: AppText.displayM),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        height: 3,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(2),
+                          gradient: LinearGradient(
+                            colors: [
+                              C.accent.withValues(alpha: 0.55),
+                              C.accent.withValues(alpha: 0.0),
+                            ],
+                            stops: const [0.0, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: compact ? 6 : 8),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Badge de data: [ícone calendário] TER · 1 SET — compacto, com borda.
+class _DateBadge extends StatelessWidget {
+  const _DateBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < 700;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 9 : 10,
+        vertical: compact ? 6 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: C.surface2,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: C.stroke),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.calendar_month_rounded,
+            size: 14,
+            color: C.accentSecondary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            formatDayLabel(DateTime.now()),
+            style: const TextStyle(
+              fontFamily: AppFonts.body,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: C.textDim,
+            ),
+          ),
+        ],
       ),
     );
   }
