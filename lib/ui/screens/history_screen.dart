@@ -10,13 +10,135 @@ import '../widgets/nexus_card.dart';
 import 'session_detail_screen.dart';
 
 /// Histórico completo de treinos realizados, agrupado por data.
-class HistoryScreen extends ConsumerWidget {
+///
+/// Modo de seleção opcional (botão "Selecionar" no topo) para excluir
+/// um ou mais treinos — sem checkboxes permanentes nos cards.
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  bool _selecting = false;
+  final Set<String> _selected = <String>{};
+  bool _deleting = false;
+
+  void _enterSelect() => setState(() {
+        _selecting = true;
+        _selected.clear();
+      });
+
+  void _exitSelect() => setState(() {
+        _selecting = false;
+        _selected.clear();
+      });
+
+  void _toggle(String id) {
+    setState(() {
+      if (_selected.contains(id)) {
+        _selected.remove(id);
+      } else {
+        _selected.add(id);
+      }
+    });
+  }
+
+  void _selectAll(List<SessionSummary> summaries) {
+    setState(() {
+      final allIds = summaries.map((s) => s.session.id).toSet();
+      final allSelected =
+          allIds.isNotEmpty && allIds.every(_selected.contains);
+      if (allSelected) {
+        _selected.clear();
+      } else {
+        _selected
+          ..clear()
+          ..addAll(allIds);
+      }
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    if (_selected.isEmpty || _deleting) return;
+    final count = _selected.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: C.surface,
+        title: Text(
+          count == 1 ? 'Excluir treino?' : 'Excluir $count treinos?',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        content: const Text(
+          'Esta ação não pode ser desfeita. Séries, cardio e observações '
+          'dessas sessões serão removidos.',
+          style: TextStyle(fontSize: 14, color: C.textDim, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'CANCELAR',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'EXCLUIR',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+                color: C.danger,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deleting = true);
+    try {
+      await ref
+          .read(sessionRepositoryProvider)
+          .deleteSessions(List<String>.of(_selected));
+      if (!mounted) return;
+      _exitSelect();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            count == 1
+                ? 'Treino excluído do histórico'
+                : '$count treinos excluídos do histórico',
+          ),
+          backgroundColor: C.surface2,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final summaries =
         ref.watch(sessionsProvider).valueOrNull ?? const <SessionSummary>[];
+
+    // Se a lista mudou e o modo seleção ficou sem itens, sai do modo.
+    if (_selecting && summaries.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selecting) _exitSelect();
+      });
+    }
 
     final groups = <String, List<SessionSummary>>{};
     final groupOrder = <String>[];
@@ -27,7 +149,6 @@ class HistoryScreen extends ConsumerWidget {
       if (!groupOrder.contains(key)) groupOrder.add(key);
     }
 
-    // Destaques do histórico (volume / maior carga proxy).
     var totalSets = 0;
     var totalMin = 0;
     for (final s in summaries) {
@@ -35,16 +156,107 @@ class HistoryScreen extends ConsumerWidget {
       totalMin += s.session.durationMinutes;
     }
 
+    final allIds = summaries.map((s) => s.session.id).toSet();
+    final allSelected =
+        allIds.isNotEmpty && allIds.every(_selected.contains);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 26, 24, 6),
-              child: Text('HISTÓRICO', style: AppText.displayM),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 12, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _selecting
+                          ? (_selected.isEmpty
+                              ? 'SELECIONAR'
+                              : '${_selected.length} SEL.')
+                          : 'HISTÓRICO',
+                      style: AppText.displayM,
+                    ),
+                  ),
+                  if (summaries.isNotEmpty && !_selecting)
+                    TextButton(
+                      onPressed: _enterSelect,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'Selecionar',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: C.textDim,
+                        ),
+                      ),
+                    ),
+                  if (_selecting)
+                    TextButton(
+                      onPressed: _deleting ? null : _exitSelect,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: C.textDim,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            if (summaries.isNotEmpty)
+            if (_selecting && summaries.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed:
+                          _deleting ? null : () => _selectAll(summaries),
+                      child: Text(
+                        allSelected ? 'Deselecionar tudo' : 'Selecionar tudo',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: C.accentSecondary,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _selected.isEmpty || _deleting
+                          ? null
+                          : _deleteSelected,
+                      child: Text(
+                        _deleting
+                            ? 'Excluindo…'
+                            : (_selected.isEmpty
+                                ? 'Excluir'
+                                : 'Excluir (${_selected.length})'),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: _selected.isEmpty || _deleting
+                              ? C.textFaint
+                              : C.danger,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (summaries.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 4, 24, 10),
                 child: Row(
@@ -80,7 +292,12 @@ class HistoryScreen extends ConsumerWidget {
                             ),
                           ),
                           for (final s in groups[key]!)
-                            _SessionCard(summary: s),
+                            _SessionCard(
+                              summary: s,
+                              selecting: _selecting,
+                              selected: _selected.contains(s.session.id),
+                              onToggle: () => _toggle(s.session.id),
+                            ),
                         ],
                       ],
                     ),
@@ -122,9 +339,17 @@ class _MiniStat extends StatelessWidget {
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.summary});
+  const _SessionCard({
+    required this.summary,
+    required this.selecting,
+    required this.selected,
+    required this.onToggle,
+  });
 
   final SessionSummary summary;
+  final bool selecting;
+  final bool selected;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -133,30 +358,39 @@ class _SessionCard extends StatelessWidget {
     final meta =
         '${formatDuration(s.durationMinutes)} · ${s.exerciseCount} exercícios'
         '${cardio != null ? ' · ${cardio.type.label} ${cardio.durationMinutes} min' : ''}';
+
     return NexusCard(
       margin: const EdgeInsets.only(bottom: 10),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) =>
-              AppFrame(child: SessionDetailScreen(sessionId: s.id)),
-        ),
-      ),
+      selected: selecting && selected,
+      onTap: selecting
+          ? onToggle
+          : () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      AppFrame(child: SessionDetailScreen(sessionId: s.id)),
+                ),
+              ),
       child: Row(
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: C.accentSoft,
+          // Checkbox só aparece no modo seleção (não ocupa espaço no modo normal).
+          if (selecting) ...[
+            _SelectMark(selected: selected),
+            const SizedBox(width: 12),
+          ] else
+            Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: C.accentSoft,
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: C.accentSecondary,
+                size: 20,
+              ),
             ),
-            child: const Icon(
-              Icons.check_rounded,
-              color: C.accentSecondary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 14),
+          if (!selecting) const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,13 +410,40 @@ class _SessionCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: C.textFaint,
-            size: 22,
-          ),
+          if (!selecting)
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: C.textFaint,
+              size: 22,
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _SelectMark extends StatelessWidget {
+  const _SelectMark({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? C.accent : Colors.transparent,
+        border: Border.all(
+          color: selected ? C.accent : C.stroke,
+          width: 2,
+        ),
+      ),
+      child: selected
+          ? const Icon(Icons.check_rounded, size: 16, color: C.accentInk)
+          : null,
     );
   }
 }

@@ -181,6 +181,21 @@ class SessionRepository {
     _emit();
   }
 
+  /// Remove sessões do histórico (cascata: séries, cardio, notas).
+  Future<void> deleteSessions(Iterable<String> ids) async {
+    final list = ids.where((id) => id.isNotEmpty).toList(growable: false);
+    if (list.isEmpty) return;
+    await _db.transaction((txn) async {
+      for (final id in list) {
+        // FKs com ON DELETE CASCADE cobrem sets/cardio/notes.
+        await txn.delete('sessions', where: 'id = ?', whereArgs: [id]);
+      }
+    });
+    _emit();
+  }
+
+  Future<void> deleteSession(String id) => deleteSessions([id]);
+
   /// Persiste a página atual da execução (para retomar depois).
   Future<void> updateCurrentPage(String sessionId, int page) async {
     await _db.update(
