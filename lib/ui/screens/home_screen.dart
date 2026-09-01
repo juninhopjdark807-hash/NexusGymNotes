@@ -96,7 +96,7 @@ class _HomeHeader extends StatelessWidget {
     final h = MediaQuery.sizeOf(context).height;
     final compact = h < 700;
     // Header enxuto: menos altura, sem vãos grandes.
-    final padV = compact ? 12.0 : 16.0;
+    final padV = compact ? 10.0 : 14.0;
     final logoSize = compact ? 24.0 : 27.0;
     final taglineSize = compact ? 11.5 : 12.5;
     // Marca ("iconeinicial"): presença equivalente (ou um pouco acima) do
@@ -175,9 +175,11 @@ class _HomeHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Linha 1: [ícone] NEXUS GYM ......... [data]
-                // Ícone, título e badge de data compartilham a MESMA linha
-                // central (alinhados entre si) — nada fica deslocado.
+                // [ ícone ] NEXUS GYM + tagline .......... [ DATA ]
+                // Tudo em UMA linha central: ícone, bloco de texto (título e
+                // tagline juntos, apenas 2-3px entre eles) e badge de data
+                // compartilham o mesmo eixo. Dentro do bloco, a tagline está
+                // na MESMA coluna do título — começa no "N" de NEXUS.
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -191,73 +193,72 @@ class _HomeHeader extends StatelessWidget {
                       filterQuality: FilterQuality.medium,
                     ),
                     SizedBox(width: markGap),
-                    // Título flexível (escala em telas estreitas).
                     Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Título (escala em telas estreitas).
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text.rich(
                               TextSpan(
-                                text: 'NEXUS',
-                                style: TextStyle(
-                                  fontFamily: AppFonts.display,
-                                  fontSize: logoSize,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 2.0,
-                                  height: 1.0,
-                                  color: C.text,
-                                ),
+                                children: [
+                                  TextSpan(
+                                    text: 'NEXUS',
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.display,
+                                      fontSize: logoSize,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 2.0,
+                                      height: 1.0,
+                                      color: C.text,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: ' GYM',
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.display,
+                                      fontSize: logoSize,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 2.0,
+                                      height: 1.0,
+                                      color: C.accent,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              TextSpan(
-                                text: ' GYM',
-                                style: TextStyle(
-                                  fontFamily: AppFonts.display,
-                                  fontSize: logoSize,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 2.0,
-                                  height: 1.0,
-                                  color: C.accent,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                          // Respiro mínimo entre título e tagline.
+                          SizedBox(height: compact ? 2 : 3),
+                          // Tagline colada ao título, alinhada ao "N"
+                          // (mesma origem X), sem coordenadas absolutas.
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Seu treino. Seu progresso.',
+                              style: TextStyle(
+                                fontFamily: AppFonts.body,
+                                fontSize: taglineSize,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.3,
+                                height: 1.2,
+                                color: C.textDim,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 10),
                     const _DateBadge(),
                   ],
                 ),
-                // Espaço compacto entre a linha da marca e a tagline.
-                SizedBox(height: compact ? 3 : 4),
-                // Linha 2: tagline alinhada ao "N" (mesma origem X do título,
-                // após a área do ícone) — sem coordenadas absolutas.
-                Row(
-                  children: [
-                    SizedBox(width: markSize + markGap),
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Seu treino. Seu progresso.',
-                          style: TextStyle(
-                            fontFamily: AppFonts.body,
-                            fontSize: taglineSize,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.3,
-                            height: 1.2,
-                            color: C.textDim,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
 
-                SizedBox(height: compact ? 11 : 16),
+                SizedBox(height: compact ? 10 : 12),
 
                 // ---- Separação elegante: linha com gradiente sutil ----
                 Container(
@@ -274,7 +275,7 @@ class _HomeHeader extends StatelessWidget {
                   ),
                 ),
 
-                SizedBox(height: compact ? 8 : 11),
+                SizedBox(height: compact ? 7 : 9),
 
                 // ---- Seção de treinos ----
                 Row(

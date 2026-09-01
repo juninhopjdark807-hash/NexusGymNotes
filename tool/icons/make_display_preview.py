@@ -102,7 +102,7 @@ def header(width_dp=390.0, scale=2.0):
     img.paste(ring, (-int(150 * scale), H - int(170 * scale)), ring)
 
     pad_l = int(24 * scale)
-    pad_t = int((compact and 12 or 16) * scale)
+    pad_t = int((compact and 10 or 14) * scale)
     mark = int((compact and 40 or 48) * scale)
     gap = int((compact and 8 or 10) * scale)
     mark_img = Image.open(MARCA).resize((mark, mark), Image.LANCZOS).convert("RGBA")
@@ -110,7 +110,9 @@ def header(width_dp=390.0, scale=2.0):
     img.paste(mg, (pad_l - int((62 if compact else 54) * scale),
                    pad_t - int((66 if compact else 58) * scale)), mg)
 
-    # —— linha 1: ícone próprio + coluna de texto (mesma origem X) ——
+    # —— [ícone] NEXUS GYM + tagline (bloco colado) .... [DATA] ——
+    # Ícone, bloco de texto (título + tagline a 2-3px) e badge compartilham
+    # o MESMO eixo central; tagline na mesma origem X (alinhada ao "N").
     img.paste(mark_img, (pad_l, pad_t), mark_img)
     text_x = pad_l + mark + gap
     text_w_avail = W - text_x - int(130 * scale)  # reserva p/ badge + gaps
@@ -124,15 +126,7 @@ def header(width_dp=390.0, scale=2.0):
     ls = int(logo_size * max(0.55, fit))
     logo_font = font(FONT_DISPLAY, ls, "Bold")
     gym_font = font(FONT_DISPLAY, ls, "SemiBold")
-    # título centralizado verticalmente na linha da altura do ícone
-    y_logo = pad_t + (mark - ls) // 2
-    x = text_x
-    draw_text(d, (x, y_logo), "NEXUS", logo_font, TEXT, spacing=2.0 * scale)
-    x += text_w("NEXUS", logo_font, 2.0 * scale) + \
-        logo_font.getlength(" ") + 2.0 * scale
-    draw_text(d, (x, y_logo), "GYM", gym_font, ACCENT, spacing=2.0 * scale)
 
-    # —— tagline na MESMA coluna (alinhada ao N), com pequeno respiro ——
     tag_size = int((compact and 11.5 or 12.5) * scale)
     tag_font = font(FONT_BODY, tag_size, "Medium")
     tag_nat = int(d.textlength("Seu treino. Seu progresso.", font=tag_font))
@@ -140,11 +134,24 @@ def header(width_dp=390.0, scale=2.0):
     if tag_fit < 1.0:
         tag_size = int(tag_size * max(0.55, tag_fit))
         tag_font = font(FONT_BODY, tag_size, "Medium")
-    tag_y = pad_t + mark + int((compact and 3 or 4) * scale)
+
+    text_gap = int((compact and 2 or 3) * scale)
+    title_h = int(ls * 1.0)
+    tag_h = int(tag_size * 1.2)
+    col_h = title_h + text_gap + tag_h
+    # bloco de texto centralizado com o ícone (mesmo eixo do badge)
+    block_top = pad_t + (mark - col_h) // 2
+    y_logo = block_top
+    x = text_x
+    draw_text(d, (x, y_logo), "NEXUS", logo_font, TEXT, spacing=2.0 * scale)
+    x += text_w("NEXUS", logo_font, 2.0 * scale) + \
+        logo_font.getlength(" ") + 2.0 * scale
+    draw_text(d, (x, y_logo), "GYM", gym_font, ACCENT, spacing=2.0 * scale)
+    tag_y = block_top + title_h + text_gap
     d.text((text_x, tag_y), "Seu treino. Seu progresso.", font=tag_font,
            fill=TEXT_DIM)
 
-    # —— badge de data à direita, alinhado com a LINHA do título/ícone ——
+    # —— badge de data à direita (mesmo eixo central do ícone/bloco) ——
     b_font = font(FONT_BODY, int(10.5 * scale), "Bold")
     b_h = int(31 * scale)
     b_w = int(118 * scale)
@@ -164,7 +171,7 @@ def header(width_dp=390.0, scale=2.0):
            "TER · 1 SET", font=b_font, fill=TEXT_DIM)
 
     # —— separador + TREINOS (respiro equilibrado) ——
-    sep_y = tag_y + int(tag_size) + int((compact and 11 or 16) * scale)
+    sep_y = tag_y + tag_h + int((compact and 10 or 12) * scale)
     sep_w = W - pad_l * 2
     for i in range(int(sep_w * 2)):
         t = i / (sep_w * 2)
@@ -172,7 +179,7 @@ def header(width_dp=390.0, scale=2.0):
         d.line((pad_l + i / 2, sep_y, pad_l + i / 2, sep_y), fill=STROKE + (a,), width=1)
 
     t_font = font(FONT_DISPLAY, int(22 * scale), "Bold")
-    ty = sep_y + 1 + int((compact and 8 or 11) * scale)
+    ty = sep_y + 1 + int((compact and 7 or 9) * scale)
     d.text((pad_l, ty), "TREINOS", font=t_font, fill=TEXT)
     bar_x = pad_l + d.textlength("TREINOS", font=t_font) + int(10 * scale)
     bar_w = W - pad_l - bar_x
