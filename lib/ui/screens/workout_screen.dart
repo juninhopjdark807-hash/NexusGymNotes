@@ -237,7 +237,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                 SafeArea(
                   top: false,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                    // Rodapé fixo e compacto — sempre visível fora do scroll.
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
                     child: _WorkoutFooter(
                       workout: workout,
                       exerciseById: exerciseById,
@@ -480,7 +481,7 @@ class _WorkoutHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
+      padding: const EdgeInsets.fromLTRB(12, 6, 6, 4),
       child: Row(
         children: [
           if (canGoBack)

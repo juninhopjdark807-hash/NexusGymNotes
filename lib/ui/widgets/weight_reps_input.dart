@@ -88,11 +88,11 @@ class WeightField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
+      height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: C.surface2,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: C.strokeSoft),
       ),
       child: Row(
@@ -100,6 +100,7 @@ class WeightField extends StatelessWidget {
           StepButton(
             icon: Icons.remove,
             enabled: enabled,
+            size: 32,
             onTap: () => _step(-step),
           ),
           Expanded(
@@ -113,9 +114,9 @@ class WeightField extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: AppFonts.display,
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
+                letterSpacing: -0.4,
                 color: C.text,
                 height: 1.1,
               ),
@@ -126,6 +127,7 @@ class WeightField extends StatelessWidget {
           StepButton(
             icon: Icons.add,
             enabled: enabled,
+            size: 32,
             onTap: () => _step(step),
           ),
         ],
@@ -156,12 +158,12 @@ class RepsField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
+      height: 56,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: C.surface2,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: C.strokeSoft),
       ),
       child: Row(
@@ -169,6 +171,7 @@ class RepsField extends StatelessWidget {
           StepButton(
             icon: Icons.remove,
             enabled: enabled,
+            size: 32,
             onTap: () => _step(-step),
           ),
           Expanded(
@@ -183,9 +186,9 @@ class RepsField extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: AppFonts.display,
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
+                letterSpacing: -0.4,
                 color: C.text,
                 height: 1.1,
               ),
@@ -196,6 +199,7 @@ class RepsField extends StatelessWidget {
           StepButton(
             icon: Icons.add,
             enabled: enabled,
+            size: 32,
             onTap: () => _step(step),
           ),
         ],
@@ -284,7 +288,7 @@ class _RegisterButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: SizedBox(
           width: width,
-          height: 64,
+          height: 56,
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),

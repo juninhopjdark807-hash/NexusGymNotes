@@ -58,18 +58,18 @@ class SetRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           splashColor: C.accentSoft,
           child: Container(
-            constraints: BoxConstraints(minHeight: hasInterval ? 64 : 56),
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            constraints: BoxConstraints(minHeight: hasInterval ? 56 : 50),
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: C.strokeSoft),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 24,
+                  height: 24,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: C.accentSoft,
@@ -77,10 +77,10 @@ class SetRow extends StatelessWidget {
                   child: const Icon(
                     Icons.check_rounded,
                     color: C.accentSecondary,
-                    size: 16,
+                    size: 14,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,31 +93,32 @@ class SetRow extends StatelessWidget {
                               TextSpan(
                                 text: 'S$setNumber  ',
                                 style: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   color: C.textFaint,
-                                  letterSpacing: 0.4,
+                                  letterSpacing: 0.3,
                                 ),
                               ),
                             TextSpan(
                               text: formatKg(set.weightKg),
                               style: const TextStyle(
                                 fontFamily: AppFonts.display,
-                                fontSize: 22,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: -0.4,
+                                letterSpacing: -0.3,
                                 color: C.text,
                               ),
                             ),
                             const TextSpan(
                               text: ' kg',
-                              style: TextStyle(fontSize: 12, color: C.textFaint),
+                              style:
+                                  TextStyle(fontSize: 11, color: C.textFaint),
                             ),
                             TextSpan(
                               text: '  × ${set.reps}',
                               style: const TextStyle(
                                 fontFamily: AppFonts.display,
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: C.accentSecondary,
                               ),
@@ -126,21 +127,20 @@ class SetRow extends StatelessWidget {
                         ),
                       ),
                       if (hasInterval) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text(
                           'Intervalo: $intervalLabel',
                           style: const TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: C.textFaint,
-                            letterSpacing: 0.2,
                           ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const Icon(Icons.edit_rounded, color: C.textFaint, size: 15),
+                const Icon(Icons.edit_rounded, color: C.textFaint, size: 14),
               ],
             ),
           ),
