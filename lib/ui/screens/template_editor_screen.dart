@@ -138,6 +138,12 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
             ));
           });
         },
+        // Segundo toque no card (deselecionar) remove do treino.
+        onRemoved: (exerciseId) {
+          setState(() {
+            _items.removeWhere((i) => i.exerciseId == exerciseId);
+          });
+        },
       ),
     );
   }

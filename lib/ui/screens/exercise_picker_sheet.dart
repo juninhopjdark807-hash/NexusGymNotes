@@ -18,6 +18,7 @@ class ExercisePickerSheet extends ConsumerStatefulWidget {
     super.key,
     required this.existingExerciseIds,
     required this.onAdded,
+    this.onRemoved,
   });
 
   /// Exercícios já presentes no treino (marcados como adicionados).
@@ -25,6 +26,9 @@ class ExercisePickerSheet extends ConsumerStatefulWidget {
 
   /// Chamado com o id do exercício ao adicionar/criar.
   final ValueChanged<String> onAdded;
+
+  /// Chamado ao DESELECIONAR (segundo toque no card) — remove do treino.
+  final ValueChanged<String>? onRemoved;
 
   @override
   ConsumerState<ExercisePickerSheet> createState() => _ExercisePickerSheetState();
@@ -41,8 +45,13 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
 
   /// Exercícios já presentes + adicionados nesta sessão da folha.
   /// Mantém a seleção múltipla sem fechar a tela: cada toque adiciona e o
-  /// "Mais" vira um check verde; só o botão "Concluir" fecha.
+  /// "Mais" vira um check verde; tocar de novo deseleciona (remove do treino);
+  /// só o botão "Concluir" fecha.
   late Set<String> _selected;
+
+  /// Apenas os adicionados DURANTE esta sessão (para saber se o toque
+  /// seguinte pode desfazer a adição via onRemoved).
+  late Set<String> _sessionAdded;
 
   /// Duplicata detectada — oferece selecionar o existente.
   Exercise? _duplicate;
@@ -51,6 +60,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   void initState() {
     super.initState();
     _selected = {...widget.existingExerciseIds};
+    _sessionAdded = <String>{};
     _newNameController.addListener(_onNameChanged);
   }
 
@@ -95,12 +105,23 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     return result;
   }
 
-  void _select(Exercise exercise) {
-    if (_selected.contains(exercise.id)) return;
-    setState(() => _selected.add(exercise.id));
-    // Adiciona SEM fechar a folha: o usuário continua selecionando vários
-    // exercícios e só sai ao tocar em "Concluir".
-    widget.onAdded(exercise.id);
+  /// Seleciona/desseleciona: 1º toque adiciona (check verde, folha aberta);
+  /// 2º toque remove do treino e volta o "Mais". Sempre sem fechar a folha.
+  void _toggle(Exercise exercise) {
+    final id = exercise.id;
+    if (!_selected.contains(id)) {
+      setState(() {
+        _selected.add(id);
+        _sessionAdded.add(id);
+      });
+      widget.onAdded(id);
+      return;
+    }
+    setState(() {
+      _sessionAdded.remove(id);
+      _selected.remove(id);
+    });
+    widget.onRemoved?.call(id);
   }
 
   Future<void> _createAndAdd() async {
@@ -121,6 +142,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
           // Cria e mantém na tela: item entra na lista com check verde.
           setState(() {
             _selected.add(exercise.id);
+            _sessionAdded.add(exercise.id);
             _creating = false;
             _showCreateForm = false;
           });
@@ -273,7 +295,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                     _DuplicateBanner(
                       existing: _duplicate!,
                       alreadyInWorkout: _selected.contains(_duplicate!.id),
-                      onSelect: () => _select(_duplicate!),
+                      onSelect: () => _toggle(_duplicate!),
                     ),
                   TextField(
                     controller: _newNameController,
@@ -369,7 +391,8 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
           return _ExerciseTile(
             exercise: ex,
             alreadyAdded: already,
-            onTap: already ? null : () => _select(ex),
+            // Sempre clicável: 1º toque seleciona, 2º deseleciona.
+            onTap: () => _toggle(ex),
           );
         }
         i++;
