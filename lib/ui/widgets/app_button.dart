@@ -5,6 +5,9 @@ import '../../core/theme.dart';
 enum AppButtonVariant { primary, ghost, danger }
 
 /// Botão grande, com alvo de toque amplo — pensado para uso durante o treino.
+///
+/// O rótulo pode ser longo (ex.: "Próximo: Supino inclinado") e é truncado
+/// com reticências em vez de gerar overflow horizontal.
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,
@@ -14,16 +17,18 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.expanded = true,
     this.height = 60,
+    this.iconAtEnd = false,
   });
 
   final String label;
   final VoidCallback? onPressed;
-
-  /// `null` desabilita o botão.
   final AppButtonVariant variant;
   final IconData? icon;
   final bool expanded;
   final double height;
+
+  /// Se true, o ícone fica à direita do texto (ex.: seta "próximo").
+  final bool iconAtEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -33,38 +38,67 @@ class AppButton extends StatelessWidget {
       AppButtonVariant.ghost => (C.surface2, C.text),
       AppButtonVariant.danger => (C.dangerSoft, C.danger),
     };
+
+    final iconWidget = icon == null
+        ? null
+        : Icon(icon, size: 18, color: fg);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: enabled ? onPressed : null,
         borderRadius: BorderRadius.circular(18),
-        child: Container(
-          height: height,
-          width: expanded ? double.infinity : null,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(18),
-            border: variant == AppButtonVariant.ghost
-                ? Border.all(color: C.stroke)
-                : null,
-          ),
-          child: Center(
+        splashColor: C.accentSoft,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.45,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            height: height,
+            width: expanded ? double.infinity : null,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(18),
+              border: variant == AppButtonVariant.ghost
+                  ? Border.all(color: C.stroke)
+                  : null,
+              boxShadow: variant == AppButtonVariant.primary && enabled
+                  ? [
+                      BoxShadow(
+                        color: C.accent.withValues(alpha: 0.28),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : null,
+            ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 18, color: fg),
+                if (iconWidget != null && !iconAtEnd) ...[
+                  iconWidget,
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  label.toUpperCase(),
-                  style: AppText.button.copyWith(
-                    color: fg,
-                    opacity: enabled ? 1 : 0.4,
+                Flexible(
+                  child: Text(
+                    label.toUpperCase(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: AppText.button.copyWith(
+                      color: fg,
+                      // letterSpacing alto estoura nomes longos em telas estreitas
+                      letterSpacing: label.length > 22 ? 0.6 : 1.2,
+                      height: 1.15,
+                      fontSize: label.length > 28 ? 12.5 : 14,
+                    ),
                   ),
                 ),
+                if (iconWidget != null && iconAtEnd) ...[
+                  const SizedBox(width: 6),
+                  iconWidget,
+                ],
               ],
             ),
           ),
@@ -87,9 +121,19 @@ class AppBackButton extends StatelessWidget {
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onPressed,
-        child: const Padding(
-          padding: EdgeInsets.all(8),
-          child: Icon(Icons.arrow_back_ios_new_rounded, color: C.textDim, size: 18),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: C.surface2,
+            border: Border.all(color: C.strokeSoft),
+          ),
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: C.textDim,
+            size: 16,
+          ),
         ),
       ),
     );

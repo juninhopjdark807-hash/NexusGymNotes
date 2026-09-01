@@ -7,6 +7,7 @@ import '../../data/session_repository.dart';
 import '../../domain/models/exercise.dart';
 import '../../domain/models/set_record.dart';
 import '../../state/providers.dart';
+import '../widgets/app_button.dart';
 
 /// Histórico de evolução de um exercício: uma linha por sessão,
 /// com as cargas de trabalho e a carga máxima.
@@ -162,7 +163,7 @@ class _ExerciseHistoryCard extends StatelessWidget {
                           fontFamily: AppFonts.display,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: C.accent,
+                          color: C.accentSecondary,
                         ),
                       ),
                     ],

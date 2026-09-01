@@ -216,7 +216,7 @@ class _ExerciseBlock extends StatelessWidget {
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1,
-                  color: C.accent,
+                  color: C.accentSecondary,
                 ),
               ),
             ),
@@ -247,9 +247,19 @@ class _CardioBlock extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '${cardio.type.label} · ${cardio.durationMinutes} min'
-            '${cardio.distanceKm != null ? ' · ${formatKg(cardio.distanceKm!)} km' : ''}',
+            '${cardio.distanceKm != null ? ' · ${formatKg(cardio.distanceKm!)} km' : ''}'
+            '${cardio.speedKmh != null ? ' · ${formatKg(cardio.speedKmh!)} km/h' : ''}'
+            '${cardio.inclinePercent != null ? ' · incl. ${formatKg(cardio.inclinePercent!)}%' : ''}'
+            '${cardio.floors != null ? ' · ${cardio.floors} andares' : ''}',
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
+          if (cardio.caloriesKcal != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Calorias estimadas: ${cardio.caloriesKcal!.round()} kcal',
+              style: AppText.bodyDim,
+            ),
+          ],
           if (cardio.note != null && cardio.note!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(cardio.note!, style: AppText.bodyFaint),

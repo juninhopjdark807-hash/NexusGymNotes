@@ -17,8 +17,10 @@ final _uuid = const Uuid();
 
 /// Página de um único exercício durante a execução do treino.
 ///
-/// Fluxo com mínimo de cliques:
-/// referência -> aquecimento -> preparatória -> séries de trabalho.
+/// Layout mobile-first:
+/// - cabeçalho compacto fixo (nome, referência, AQ/PR);
+/// - área central expansível com as séries (scroll só se o conteúdo crescer);
+/// - rodapé (observações / próximo) fica fora, no [WorkoutScreen].
 class ExercisePage extends ConsumerStatefulWidget {
   const ExercisePage({
     super.key,
@@ -40,6 +42,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   late final TextEditingController _prepReps;
   late final TextEditingController _workWeight;
   late final TextEditingController _workReps;
+  bool _didPrefill = false;
 
   @override
   void initState() {
@@ -63,10 +66,9 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
     super.dispose();
   }
 
-  /// Pré-preenche os campos com as sugestões calculadas a partir da
-  /// referência (somente campos ainda vazios — nunca sobrescreve).
   void _prefill(double? referenceKg) {
-    if (referenceKg == null) return;
+    if (referenceKg == null || _didPrefill) return;
+    _didPrefill = true;
     if (widget.item.warmupEnabled && _warmupWeight.text.trim().isEmpty) {
       _warmupWeight.text = formatKg(Progression.warmupSuggestion(referenceKg));
     }
@@ -106,7 +108,8 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
       }
       return;
     }
-    final sets = ref.read(activeSessionSetsProvider).valueOrNull ?? const <SetRecord>[];
+    final sets =
+        ref.read(activeSessionSetsProvider).valueOrNull ?? const <SetRecord>[];
     final order = sets
         .where((s) => s.exerciseId == widget.exercise.id && s.stage == stage)
         .length;
@@ -129,8 +132,9 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
     await showEditSetSheet(
       context,
       set: set,
-      onSave: (w, r) =>
-          ref.read(sessionRepositoryProvider).updateSet(set.copyWith(weightKg: w, reps: r)),
+      onSave: (w, r) => ref
+          .read(sessionRepositoryProvider)
+          .updateSet(set.copyWith(weightKg: w, reps: r)),
       onDelete: () => _deleteSet(set),
     );
   }
@@ -144,7 +148,10 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
         content: Row(
           children: [
             const Expanded(
-              child: Text('Série excluída', style: TextStyle(fontSize: 13)),
+              child: Text(
+                'Série excluída',
+                style: TextStyle(fontSize: 13, color: C.textDim),
+              ),
             ),
             TextButton(
               onPressed: () => repo.saveSet(set),
@@ -163,122 +170,340 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
         backgroundColor: C.surface2,
-        contentTextStyle: const TextStyle(color: C.textDim),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final sets = ref.watch(activeSessionSetsProvider).valueOrNull ?? const <SetRecord>[];
+    final sets =
+        ref.watch(activeSessionSetsProvider).valueOrNull ?? const <SetRecord>[];
     final exerciseId = widget.exercise.id;
-    final mine = sets.where((s) => s.exerciseId == exerciseId).toList(growable: false);
+    final mine =
+        sets.where((s) => s.exerciseId == exerciseId).toList(growable: false);
 
     final warmupSet = _firstOf(mine, SetStage.aquecimento);
     final prepSet = _firstOf(mine, SetStage.preparatoria);
     final workSets = mine.where((s) => s.stage == SetStage.trabalho).toList()
       ..sort((a, b) => b.order.compareTo(a.order));
 
+    final chronological = List<SetRecord>.of(mine)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final intervalById = <String, String>{};
+    for (var i = 0; i < chronological.length; i++) {
+      if (i == 0) {
+        intervalById[chronological[i].id] = '—';
+      } else {
+        final delta = chronological[i]
+            .createdAt
+            .difference(chronological[i - 1].createdAt);
+        intervalById[chronological[i].id] = formatInterval(delta);
+      }
+    }
+
     final reference = ref.watch(referenceProvider(exerciseId));
-    ref.listen(
+    final referenceKg = reference.valueOrNull;
+    if (!_didPrefill && reference.hasValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _prefill(referenceKg);
+      });
+    }
+    ref.listen<AsyncValue<double?>>(
       referenceProvider(exerciseId),
       (previous, next) {
-        if (next is AsyncData<double?>) _prefill(next.value);
+        next.whenData(_prefill);
       },
-      fireImmediately: true,
     );
-    final referenceKg = reference.valueOrNull;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 6, 24, 150),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final warmupOn = widget.item.warmupEnabled;
+    final prepOn = widget.item.prepEnabled;
+
+    // Numeração das séries de trabalho (ordem de registro).
+    final workAscending = List<SetRecord>.of(workSets)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final workNumberById = <String, int>{
+      for (var i = 0; i < workAscending.length; i++) workAscending[i].id: i + 1,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ——— Cabeçalho compacto (não rola) ———
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.exercise.name,
+                style: AppText.displayM,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Text(
+                    widget.exercise.muscleGroup.label.toUpperCase(),
+                    style: AppText.label,
+                  ),
+                  const Spacer(),
+                  _CompactReference(referenceKg: referenceKg),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _SessionStageToggles(
+                warmupOn: warmupOn,
+                prepOn: prepOn,
+                onToggleWarmup: () => ref
+                    .read(activeWorkoutProvider.notifier)
+                    .setItemStages(
+                      widget.item.id,
+                      warmupEnabled: !warmupOn,
+                    ),
+                onTogglePrep: () => ref
+                    .read(activeWorkoutProvider.notifier)
+                    .setItemStages(
+                      widget.item.id,
+                      prepEnabled: !prepOn,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // ——— Corpo: cresce e só rola se passar da viewport ———
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            // Não força bounce/scroll quando o conteúdo cabe.
+            physics: const ClampingScrollPhysics(),
+            children: [
+              if (warmupOn) ...[
+                _StageSection(
+                  title: 'AQUECIMENTO',
+                  suggestionKg: referenceKg == null
+                      ? null
+                      : Progression.warmupSuggestion(referenceKg),
+                  child: warmupSet == null
+                      ? SetInputRow(
+                          weightController: _warmupWeight,
+                          repsController: _warmupReps,
+                          onRegister: () => _register(
+                            SetStage.aquecimento,
+                            _warmupWeight,
+                            _warmupReps,
+                          ),
+                        )
+                      : SetRow(
+                          set: warmupSet,
+                          onEdit: () => _editSet(warmupSet),
+                          onDelete: () => _deleteSet(warmupSet),
+                          intervalLabel: intervalById[warmupSet.id],
+                        ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (prepOn) ...[
+                _StageSection(
+                  title: 'PREPARATÓRIA',
+                  suggestionKg: referenceKg == null
+                      ? null
+                      : Progression.prepSuggestion(referenceKg),
+                  child: prepSet == null
+                      ? SetInputRow(
+                          weightController: _prepWeight,
+                          repsController: _prepReps,
+                          onRegister: () => _register(
+                            SetStage.preparatoria,
+                            _prepWeight,
+                            _prepReps,
+                          ),
+                        )
+                      : SetRow(
+                          set: prepSet,
+                          onEdit: () => _editSet(prepSet),
+                          onDelete: () => _deleteSet(prepSet),
+                          intervalLabel: intervalById[prepSet.id],
+                        ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              const Text('SÉRIES DE TRABALHO', style: AppText.label),
+              const SizedBox(height: 8),
+              SetInputRow(
+                weightController: _workWeight,
+                repsController: _workReps,
+                onRegister: () =>
+                    _register(SetStage.trabalho, _workWeight, _workReps),
+              ),
+              const SizedBox(height: 8),
+              if (workSets.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    'Nenhuma série registrada',
+                    style: AppText.bodyFaint,
+                  ),
+                )
+              else
+                for (final s in workSets)
+                  SetRow(
+                    set: s,
+                    setNumber: workNumberById[s.id],
+                    onEdit: () => _editSet(s),
+                    onDelete: () => _deleteSet(s),
+                    intervalLabel: intervalById[s.id],
+                  ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Referência compacta em uma linha (economiza altura vertical).
+class _CompactReference extends StatelessWidget {
+  const _CompactReference({required this.referenceKg});
+
+  final double? referenceKg;
+
+  @override
+  Widget build(BuildContext context) {
+    if (referenceKg == null) {
+      return const Text(
+        'sem ref.',
+        style: AppText.bodyFaint,
+      );
+    }
+    return Text.rich(
+      TextSpan(
         children: [
-          // Nome do exercício + grupo muscular
-          Text(
-            widget.exercise.name,
-            style: AppText.displayL,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            widget.exercise.muscleGroup.label.toUpperCase(),
-            style: AppText.label,
-          ),
-          const SizedBox(height: 22),
-          // Última referência (maior carga de trabalho anterior)
-          _ReferenceRow(referenceKg: referenceKg),
-          const SizedBox(height: 26),
-          // Aquecimento
-          if (widget.item.warmupEnabled) ...[
-            _StageSection(
-              title: 'AQUECIMENTO',
-              suggestionKg: referenceKg == null
-                  ? null
-                  : Progression.warmupSuggestion(referenceKg),
-              child: warmupSet == null
-                  ? SetInputRow(
-                      weightController: _warmupWeight,
-                      repsController: _warmupReps,
-                      onRegister: () =>
-                          _register(SetStage.aquecimento, _warmupWeight, _warmupReps),
-                    )
-                  : SetRow(
-                      set: warmupSet,
-                      onEdit: () => _editSet(warmupSet),
-                      onDelete: () => _deleteSet(warmupSet),
-                    ),
+          const TextSpan(
+            text: 'REF ',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+              color: C.textFaint,
             ),
-            const SizedBox(height: 18),
-          ],
-          // Preparatória
-          if (widget.item.prepEnabled) ...[
-            _StageSection(
-              title: 'PREPARATÓRIA',
-              suggestionKg: referenceKg == null
-                  ? null
-                  : Progression.prepSuggestion(referenceKg),
-              child: prepSet == null
-                  ? SetInputRow(
-                      weightController: _prepWeight,
-                      repsController: _prepReps,
-                      onRegister: () =>
-                          _register(SetStage.preparatoria, _prepWeight, _prepReps),
-                    )
-                  : SetRow(
-                      set: prepSet,
-                      onEdit: () => _editSet(prepSet),
-                      onDelete: () => _deleteSet(prepSet),
-                    ),
-            ),
-            const SizedBox(height: 26),
-          ],
-          // Séries de trabalho
-          const Text('SÉRIES DE TRABALHO', style: AppText.label),
-          const SizedBox(height: 10),
-          SetInputRow(
-            weightController: _workWeight,
-            repsController: _workReps,
-            onRegister: () => _register(SetStage.trabalho, _workWeight, _workReps),
           ),
-          const SizedBox(height: 10),
-          if (workSets.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text('Nenhuma série registrada', style: AppText.bodyFaint),
-            )
-          else
-            ...workSets.map(
-              (s) => SetRow(set: s, onEdit: () => _editSet(s), onDelete: () => _deleteSet(s)),
+          TextSpan(
+            text: formatKg(referenceKg!),
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: C.accentSecondary,
             ),
+          ),
+          const TextSpan(
+            text: ' kg',
+            style: TextStyle(fontSize: 11, color: C.textFaint),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Etapa de aquecimento/preparatória: rótulo + sugestão + input (ou série registrada).
+class _SessionStageToggles extends StatelessWidget {
+  const _SessionStageToggles({
+    required this.warmupOn,
+    required this.prepOn,
+    required this.onToggleWarmup,
+    required this.onTogglePrep,
+  });
+
+  final bool warmupOn;
+  final bool prepOn;
+  final VoidCallback onToggleWarmup;
+  final VoidCallback onTogglePrep;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _SessionStageChip(
+            label: 'Aquecimento',
+            on: warmupOn,
+            onTap: onToggleWarmup,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _SessionStageChip(
+            label: 'Preparatória',
+            on: prepOn,
+            onTap: onTogglePrep,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SessionStageChip extends StatelessWidget {
+  const _SessionStageChip({
+    required this.label,
+    required this.on,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: C.accentSoft,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            color: on ? C.accentSoft : C.surface2,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: on ? C.accent.withValues(alpha: 0.55) : C.stroke,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                on
+                    ? Icons.check_circle_rounded
+                    : Icons.add_circle_outline_rounded,
+                size: 16,
+                color: on ? C.accentSecondary : C.textFaint,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: on ? C.accentSecondary : C.textDim,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StageSection extends StatelessWidget {
   const _StageSection({
     required this.title,
@@ -301,73 +526,27 @@ class _StageSection extends StatelessWidget {
             const Spacer(),
             if (suggestionKg != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: C.accentSoft,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: C.accent.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   '${formatKg(suggestionKg!)} kg',
                   style: const TextStyle(
                     fontFamily: AppFonts.display,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: C.accent,
+                    color: C.accentSecondary,
                   ),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         child,
-      ],
-    );
-  }
-}
-
-/// "Última referência" — maior carga de trabalho da execução anterior.
-class _ReferenceRow extends StatelessWidget {
-  const _ReferenceRow({required this.referenceKg});
-
-  final double? referenceKg;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('ÚLTIMA REFERÊNCIA', style: AppText.label),
-            const SizedBox(height: 2),
-            if (referenceKg != null)
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: formatKg(referenceKg!),
-                      style: const TextStyle(
-                        fontFamily: AppFonts.display,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.6,
-                        color: C.accent,
-                      ),
-                    ),
-                    const TextSpan(
-                      text: ' kg',
-                      style: TextStyle(fontSize: 13, color: C.textFaint),
-                    ),
-                  ],
-                ),
-              )
-            else
-              const Text(
-                'sem histórico — informe a carga',
-                style: AppText.bodyFaint,
-              ),
-          ],
-        ),
       ],
     );
   }

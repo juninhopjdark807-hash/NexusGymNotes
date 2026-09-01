@@ -80,7 +80,7 @@ class SessionRepository {
     final rows = await _db.query(
       'sessions',
       where: 'ended_at IS NULL',
-      orderBy: ['started_at DESC'],
+      orderBy: 'started_at DESC',
       limit: 1,
     );
     if (rows.isEmpty) return null;
@@ -141,6 +141,10 @@ class SessionRepository {
             'type': cardio.type.name,
             'duration_minutes': cardio.durationMinutes,
             'distance_km': cardio.distanceKm,
+            'speed_kmh': cardio.speedKmh,
+            'incline_percent': cardio.inclinePercent,
+            'floors': cardio.floors,
+            'calories_kcal': cardio.caloriesKcal,
             'note': cardio.note,
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -157,7 +161,7 @@ class SessionRepository {
       'sets',
       where: 'session_id = ?',
       whereArgs: [sessionId],
-      orderBy: ['created_at ASC', 'position ASC'],
+      orderBy: 'created_at ASC, position ASC',
     );
     return rows.map(_setFromRow).toList(growable: false);
   }
@@ -177,6 +181,89 @@ class SessionRepository {
     _emit();
   }
 
+  /// Remove sessões do histórico (cascata: séries, cardio, notas).
+  Future<void> deleteSessions(Iterable<String> ids) async {
+    final list = ids.where((id) => id.isNotEmpty).toList(growable: false);
+    if (list.isEmpty) return;
+    await _db.transaction((txn) async {
+      for (final id in list) {
+        // FKs com ON DELETE CASCADE cobrem sets/cardio/notes.
+        await txn.delete('sessions', where: 'id = ?', whereArgs: [id]);
+      }
+    });
+    _emit();
+  }
+
+  Future<void> deleteSession(String id) => deleteSessions([id]);
+
+  /// Persiste a página atual da execução (para retomar depois).
+  Future<void> updateCurrentPage(String sessionId, int page) async {
+    await _db.update(
+      'sessions',
+      {'current_page': page},
+      where: 'id = ?',
+      whereArgs: [sessionId],
+    );
+    // Sem _emit: evita rebuild de listas a cada swipe.
+  }
+
+  // -------------------------------------------------------- notas do exercício
+
+  /// Nota da execução de [exerciseId] nesta [sessionId] (null se vazia).
+  Future<String?> noteForExercise(String sessionId, String exerciseId) async {
+    final rows = await _db.query(
+      'exercise_notes',
+      where: 'session_id = ? AND exercise_id = ?',
+      whereArgs: [sessionId, exerciseId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final note = (rows.first['note'] as String?)?.trim() ?? '';
+    return note.isEmpty ? null : note;
+  }
+
+  /// Salva ou atualiza a nota. Texto vazio remove o registro.
+  Future<void> saveExerciseNote({
+    required String sessionId,
+    required String exerciseId,
+    required String note,
+  }) async {
+    final trimmed = note.trim();
+    if (trimmed.isEmpty) {
+      await _db.delete(
+        'exercise_notes',
+        where: 'session_id = ? AND exercise_id = ?',
+        whereArgs: [sessionId, exerciseId],
+      );
+    } else {
+      final existing = await _db.query(
+        'exercise_notes',
+        columns: ['id'],
+        where: 'session_id = ? AND exercise_id = ?',
+        whereArgs: [sessionId, exerciseId],
+        limit: 1,
+      );
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (existing.isEmpty) {
+        await _db.insert('exercise_notes', {
+          'id': _uuid.v4(),
+          'session_id': sessionId,
+          'exercise_id': exerciseId,
+          'note': trimmed,
+          'updated_at': now,
+        });
+      } else {
+        await _db.update(
+          'exercise_notes',
+          {'note': trimmed, 'updated_at': now},
+          where: 'id = ?',
+          whereArgs: [existing.first['id']],
+        );
+      }
+    }
+    _emit();
+  }
+
   /// Séries de **trabalho** da execução anterior do exercício
   /// (excluindo a sessão atual, quando em andamento).
   ///
@@ -185,26 +272,39 @@ class SessionRepository {
     String exerciseId, {
     String? excludeSessionId,
   }) async {
-    final rows = await _db.rawQuery('''
+    // Placeholders posicionais (?) evitam mapa ambíguo (Iterable + Map spread).
+    final excludeClause = excludeSessionId != null
+        ? 'AND s.session_id != ?'
+        : '';
+    final excludeSubClause = excludeSessionId != null
+        ? 'AND se2.id != ?'
+        : '';
+    final args = <Object?>[
+      exerciseId,
+      if (excludeSessionId != null) excludeSessionId,
+      exerciseId,
+      if (excludeSessionId != null) excludeSessionId,
+    ];
+    final rows = await _db.rawQuery(
+      '''
       SELECT s.*
       FROM sets s
       JOIN sessions se ON se.id = s.session_id
-      WHERE s.exercise_id = :exerciseId
+      WHERE s.exercise_id = ?
         AND s.stage = 'trabalho'
-        ${excludeSessionId != null ? 'AND s.session_id != :exclude' : ''}
+        $excludeClause
         AND se.started_at = (
           SELECT MAX(se2.started_at)
           FROM sessions se2
           JOIN sets s2 ON s2.session_id = se2.id
-          WHERE s2.exercise_id = :exerciseId
+          WHERE s2.exercise_id = ?
             AND s2.stage = 'trabalho'
-            ${excludeSessionId != null ? 'AND se2.id != :exclude' : ''}
+            $excludeSubClause
         )
       ORDER BY s.position ASC
-    ''', {
-      'exerciseId': exerciseId,
-      if (excludeSessionId != null) 'exclude': excludeSessionId,
-    });
+      ''',
+      args,
+    );
     return rows.map(_setFromRow).toList(growable: false);
   }
 
@@ -217,7 +317,7 @@ class SessionRepository {
       'sets',
       where: 'exercise_id = ?',
       whereArgs: [exerciseId],
-      orderBy: ['created_at ASC', 'position ASC'],
+      orderBy: 'created_at ASC, position ASC',
     );
     return rows.map(_setFromRow).toList(growable: false);
   }
@@ -262,6 +362,7 @@ class SessionRepository {
           : DateTime.fromMillisecondsSinceEpoch(r['ended_at'] as int),
       exerciseCount: (r['exercise_count'] as int?) ?? 0,
       totalSets: (r['total_sets'] as int?) ?? 0,
+      currentPage: (r['current_page'] as int?) ?? 0,
     );
   }
 
@@ -274,6 +375,7 @@ class SessionRepository {
         'ended_at': s.endedAt?.millisecondsSinceEpoch,
         'exercise_count': s.exerciseCount,
         'total_sets': s.totalSets,
+        'current_page': s.currentPage,
       };
 
   static SetRecord _setFromRow(Map<String, Object?> r) {
@@ -307,7 +409,37 @@ class SessionRepository {
       type: CardioType.fromName(r['type'] as String?),
       durationMinutes: r['duration_minutes'] as int,
       distanceKm: (r['distance_km'] as num?)?.toDouble(),
+      speedKmh: (r['speed_kmh'] as num?)?.toDouble(),
+      inclinePercent: (r['incline_percent'] as num?)?.toDouble(),
+      floors: r['floors'] as int?,
+      caloriesKcal: (r['calories_kcal'] as num?)?.toDouble(),
       note: r['note'] as String?,
     );
+  }
+
+  /// Maior carga de trabalho por exercício em sessões **concluídas**
+  /// (exclui [excludeSessionId]). Usado para detectar PR no resumo.
+  Future<Map<String, double>> maxWorkWeightByExercise({
+    String? excludeSessionId,
+  }) async {
+    final rows = await _db.rawQuery(
+      '''
+      SELECT s.exercise_id, MAX(s.weight_kg) AS max_w
+      FROM sets s
+      JOIN sessions se ON se.id = s.session_id
+      WHERE s.stage = 'trabalho'
+        AND se.ended_at IS NOT NULL
+        ${excludeSessionId != null ? 'AND se.id != ?' : ''}
+      GROUP BY s.exercise_id
+      ''',
+      excludeSessionId != null ? [excludeSessionId] : null,
+    );
+    final map = <String, double>{};
+    for (final r in rows) {
+      final id = r['exercise_id'] as String?;
+      final w = (r['max_w'] as num?)?.toDouble();
+      if (id != null && w != null) map[id] = w;
+    }
+    return map;
   }
 }

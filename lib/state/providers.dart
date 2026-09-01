@@ -2,12 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
 import '../data/exercise_repository.dart';
+import '../data/profile_repository.dart';
 import '../data/session_repository.dart';
 import '../data/template_repository.dart';
 import '../domain/logic/progression.dart';
+import '../domain/models/body_assessment.dart';
 import '../domain/models/cardio_record.dart';
 import '../domain/models/exercise.dart';
 import '../domain/models/set_record.dart';
+import '../domain/models/user_profile.dart';
 import '../domain/models/workout_session.dart';
 import '../domain/models/workout_template.dart';
 import 'active_workout.dart';
@@ -28,6 +31,10 @@ final sessionRepositoryProvider = Provider<SessionRepository>(
   (ref) => SessionRepository.shared,
 );
 
+final profileRepositoryProvider = Provider<ProfileRepository>(
+  (ref) => ProfileRepository.shared,
+);
+
 /// Aba ativa da navegação inferior (0 = Treinos, 1 = Histórico).
 final tabProvider = StateProvider<int>((ref) => 0);
 
@@ -39,10 +46,19 @@ final activeWorkoutProvider = NotifierProvider<ActiveWorkoutNotifier, ActiveWork
 );
 
 /// Séries da sessão ativa.
+///
+/// Não usa `ref.watch` em outro [StreamProvider] (retorna AsyncValue, não
+/// Stream). Em vez disso, reage às mudanças do repositório e à sessão ativa.
 final activeSessionSetsProvider = StreamProvider<List<SetRecord>>((ref) {
   final workout = ref.watch(activeWorkoutProvider);
-  if (workout == null) return Stream.value(const <SetRecord>[]);
-  return ref.watch(sessionSetsProvider(workout.sessionId));
+  if (workout == null) {
+    return Stream.value(const <SetRecord>[]);
+  }
+  final sessionId = workout.sessionId;
+  final repo = ref.watch(sessionRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.setsForSession(sessionId))
+      .handleError((Object e) => const <SetRecord>[]);
 });
 
 /// Referência do exercício: maior carga de trabalho da execução anterior
@@ -144,3 +160,32 @@ final exerciseSessionsProvider =
             .handleError((Object e) => const <ExerciseSessionInfo>[]);
       },
     );
+
+/// Nota da execução de um exercício na sessão ativa (null se vazia).
+/// Family key: `"$sessionId|$exerciseId"`.
+final exerciseNoteProvider = StreamProvider.family<String?, String>((ref, key) {
+  final parts = key.split('|');
+  if (parts.length != 2) return Stream.value(null);
+  final sessionId = parts[0];
+  final exerciseId = parts[1];
+  final repo = ref.watch(sessionRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.noteForExercise(sessionId, exerciseId))
+      .handleError((Object e) => null);
+});
+
+// ---------------------------------------------------------- perfil / corpo
+
+final userProfileProvider = StreamProvider<UserProfile?>((ref) {
+  final repo = ref.watch(profileRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.getProfile())
+      .handleError((Object e) => null);
+});
+
+final bodyAssessmentsProvider = StreamProvider<List<BodyAssessment>>((ref) {
+  final repo = ref.watch(profileRepositoryProvider);
+  return repo.changes
+      .asyncMap((_) => repo.getAssessments())
+      .handleError((Object e) => const <BodyAssessment>[]);
+});

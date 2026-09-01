@@ -28,10 +28,10 @@ class TemplateRepository {
   String newId() => _uuid.v4();
 
   Future<List<WorkoutTemplate>> getAll() async {
-    final tRows = await _db.query('templates', orderBy: ['updated_at DESC']);
+    final tRows = await _db.query('templates', orderBy: 'updated_at DESC');
     final eRows = await _db.query(
       'template_exercises',
-      orderBy: ['position ASC'],
+      orderBy: 'position ASC',
     );
     final byTemplate = <String, List<WorkoutExercise>>{};
     for (final r in eRows) {
@@ -63,7 +63,7 @@ class TemplateRepository {
       'template_exercises',
       where: 'template_id = ?',
       whereArgs: [id],
-      orderBy: ['position ASC'],
+      orderBy: 'position ASC',
     );
     final items = eRows
         .map((r) => WorkoutExercise(
